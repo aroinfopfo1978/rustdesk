@@ -77,7 +77,7 @@ jobs:
       - name: Checkout source code
         uses: actions/checkout@v4
         with:
-          submodules: master
+          submodules: recursive
 
       # === INICIO DA CONFIGURAÇÃO ARO TECNOLOGIA (FLUTTER) ===
       - name: Configurar ARO Tecnologia (IP e Key)
