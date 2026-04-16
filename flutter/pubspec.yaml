@@ -1,5 +1,5 @@
-name: Suporte ARO Tecnologia
-description: Suporte ARO Tecnologia
+name: suporte_aro
+description: Aplicativo de Suporte Remoto ARO Tecnologia
 
 # The following line prevents the package from being accidentally published to
 # pub.dev using `pub publish`. This is preferred for private packages.
