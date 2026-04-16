@@ -78,6 +78,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: recursive
+          ref: '64faa8c' # Este é um commit recente que passou nos testes de compilação
 
       # === INICIO DA CONFIGURAÇÃO ARO TECNOLOGIA (FLUTTER) ===
       - name: Configurar ARO Tecnologia (IP e Key)
