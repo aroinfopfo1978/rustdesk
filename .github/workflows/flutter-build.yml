@@ -77,8 +77,9 @@ jobs:
       - name: Checkout source code
         uses: actions/checkout@v4
         with:
+          ref: '64faa8c'
+          fetch-depth: 0 # Necessário para encontrar commits específicos
           submodules: recursive
-          ref: '64faa8c' # Este é um commit recente que passou nos testes de compilação
 
       # === INICIO DA CONFIGURAÇÃO ARO TECNOLOGIA (FLUTTER) ===
       - name: Configurar ARO Tecnologia (IP e Key)
