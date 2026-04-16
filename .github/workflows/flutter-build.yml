@@ -77,9 +77,10 @@ jobs:
       - name: Checkout source code
         uses: actions/checkout@v4
         with:
-          ref: '64faa8c'
-          fetch-depth: 0 # Necessário para encontrar commits específicos
           submodules: recursive
+          fetch-depth: 0
+      - name: Forcar o commit estavel
+        run: git reset --hard 64faa8c
 
       # === INICIO DA CONFIGURAÇÃO ARO TECNOLOGIA (FLUTTER) ===
       - name: Configurar ARO Tecnologia (IP e Key)
