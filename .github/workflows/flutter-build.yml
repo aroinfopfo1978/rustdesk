@@ -80,7 +80,7 @@ jobs:
         shell: bash
         run: |
           sed -i "s/RENDEZVOUS_SERVER = .*/RENDEZVOUS_SERVER = '34.61.184.16';/g" libs/hbb_common/src/config.rs
-          sed -i "s/RS_PUB_KEY = .*/RS_PUB_KEY = 'a42ozDZ2VHKhgYPSHZzZ6+Jasbw223LEE2RzZRHKeek=';/g" libs/hbb_common/src/config.rs
+          sed -i "s/RS_PUB_KEY = .*/RS_PUB_KEY = 'ADXHIbZV761ZB4hKlyl4YnC+vknCTKjI1jF9d33mMjk=';/g" libs/hbb_common/src/config.rs
           sed -i "s|API_SERVER = .*|API_SERVER = 'http://34.61.184.16:21114';|g" libs/hbb_common/src/config.rs
       # === FIM DA CONFIGURAÇÃO ARO TECNOLOGIA ===
 
