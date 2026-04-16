@@ -5,6 +5,10 @@ on:
     branches:
       - master
   workflow_dispatch:
+    inputs:
+      upload-artifact:
+        type: boolean
+        default: true
   workflow_call:
     inputs:
       upload-artifact:
@@ -22,7 +26,7 @@ env:
   FLUTTER_VERSION: "3.24.5"
   ANDROID_FLUTTER_VERSION: "3.24.5"
   FLUTTER_ELINUX_VERSION: "3.16.9"
-  TAG_NAME: "${{ inputs.upload-tag }}"
+  TAG_NAME: "${{ inputs.upload-tag || 'nightly' }}"
   VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
   VCPKG_COMMIT_ID: "120deac3062162151622ca4860575a33844ba10b"
   ARMV7_VCPKG_COMMIT_ID: "6f29f12e82a8293156836ad81cc9bf5af41fe836"
@@ -30,7 +34,7 @@ env:
   NDK_VERSION: "r28c"
   ANDROID_SIGNING_KEY: "${{ secrets.ANDROID_SIGNING_KEY }}"
   MACOS_P12_BASE64: "${{ secrets.MACOS_P12_BASE64 }}"
-  UPLOAD_ARTIFACT: "${{ inputs.upload-artifact }}"
+  UPLOAD_ARTIFACT: "${{ inputs.upload-artifact != false }}"
   SIGN_BASE_URL: "${{ secrets.SIGN_BASE_URL }}-2"
 
 jobs:
@@ -40,7 +44,7 @@ jobs:
   build-RustDeskTempTopMostWindow:
     uses: ./.github/workflows/third-party-RustDeskTempTopMostWindow.yml
     with:
-      upload-artifact: ${{ inputs.upload-artifact }}
+      upload-artifact: ${{ inputs.upload-artifact != false }}
       target: windows-2022
       configuration: Release
       platform: x64
@@ -75,7 +79,7 @@ jobs:
         with:
           submodules: recursive
 
-      # === INICIO DA CONFIGURAÇÃO ARO TECNOLOGIA ===
+      # === INICIO DA CONFIGURAÇÃO ARO TECNOLOGIA (FLUTTER) ===
       - name: Configurar ARO Tecnologia (IP e Key)
         shell: bash
         run: |
@@ -178,7 +182,7 @@ jobs:
 
       - name: Download RustDeskTempTopMostWindow artifacts
         uses: actions/download-artifact@master
-        if: ${{ inputs.upload-artifact }}
+        if: ${{ inputs.upload-artifact != false }}
         with:
           name: topmostwindow-artifacts
           path: "./rustdesk"
@@ -224,7 +228,6 @@ jobs:
             ./SignOutput/rustdesk-*.msi
             ./SignOutput/rustdesk-*.exe
 
-  # Repeti a lógica no Sciter para garantir que a versão 32 bits também seja customizada
   build-for-windows-sciter:
     name: ${{ matrix.job.target }} (${{ matrix.job.os }})
     runs-on: ${{ matrix.job.os }}
@@ -256,7 +259,7 @@ jobs:
         shell: bash
         run: |
           sed -i "s/RENDEZVOUS_SERVER = .*/RENDEZVOUS_SERVER = '34.61.184.16';/g" libs/hbb_common/src/config.rs
-          sed -i "s/RS_PUB_KEY = .*/RS_PUB_KEY = 'a42ozDZ2VHKhgYPSHZzZ6+Jasbw223LEE2RzZRHKeek';/g" libs/hbb_common/src/config.rs
+          sed -i "s/RS_PUB_KEY = .*/RS_PUB_KEY = 'ADXHIbZV761ZB4hKlyl4YnC+vknCTKjI1jF9d33mMjk=';/g" libs/hbb_common/src/config.rs
           sed -i "s|API_SERVER = .*|API_SERVER = 'http://34.61.184.16:21114';|g" libs/hbb_common/src/config.rs
       # === FIM DA CONFIGURAÇÃO ARO TECNOLOGIA ===
 
