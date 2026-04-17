@@ -1,10 +1,10 @@
-name: Flutter Build (Windows)
+name: RustDesk Windows Build
 
 on:
   workflow_dispatch:
 
 jobs:
-  build-windows:
+  build:
     runs-on: windows-2022
 
     env:
@@ -12,70 +12,74 @@ jobs:
       FLUTTER_VERSION: 3.24.5
 
     steps:
-      # 1. Checkout correto com submodules
-      - name: Checkout repository
+      # Checkout
+      - name: Checkout
         uses: actions/checkout@v4
         with:
           submodules: recursive
           fetch-depth: 0
 
-      # 2. Garantir submodules (evita erro flutter_hbb)
-      - name: Update submodules
+      - name: Fix submodules
         run: |
           git submodule sync
           git submodule update --init --recursive --force
 
-      # 3. Instalar Rust
+      # Rust
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: ${{ env.RUST_VERSION }}
 
-      # 4. Instalar Flutter
-      - name: Setup Flutter
+      # Flutter
+      - name: Install Flutter
         uses: subosito/flutter-action@v2
         with:
           flutter-version: ${{ env.FLUTTER_VERSION }}
 
-      # 5. Cache Flutter (opcional mas recomendado)
-      - name: Cache Flutter
+      # Python (necessário pro build.py)
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      # vcpkg (DEPENDÊNCIA CRÍTICA)
+      - name: Setup vcpkg
+        run: |
+          git clone https://github.com/microsoft/vcpkg.git C:\vcpkg
+          C:\vcpkg\bootstrap-vcpkg.bat
+
+      - name: Integrate vcpkg
+        run: C:\vcpkg\vcpkg integrate install
+
+      # Cache vcpkg
+      - name: Cache vcpkg
         uses: actions/cache@v4
         with:
-          path: |
-            ~/.pub-cache
-            flutter/bin/cache
-          key: flutter-${{ runner.os }}-${{ env.FLUTTER_VERSION }}
+          path: C:\vcpkg\installed
+          key: vcpkg-${{ runner.os }}
 
-      # 6. Instalar dependências do Flutter
+      # Dependências Flutter
       - name: Flutter pub get
         run: |
           cd flutter
           flutter clean
           flutter pub get
 
-      # 7. Validar se flutter_hbb existe (debug crítico)
-      - name: Check flutter_hbb
+      # DEBUG estrutura
+      - name: Check structure
         run: |
           dir flutter
           dir flutter\libs
           dir flutter\flutter_hbb
 
-      # 8. Build bridge (ESSENCIAL)
-      - name: Generate bridge
-        run: |
-          cd flutter
-          dart run build_runner build --delete-conflicting-outputs
-
-      # 9. Build RustDesk (Flutter + Rust)
+      # Build principal (OFICIAL DO RUSTDESK)
       - name: Build RustDesk
         run: |
-          cd flutter
-          flutter build windows --release
+          python3 .\build.py --portable --flutter --skip-portable-pack
 
-      # 10. Upload artefato
-      - name: Upload executable
+      # Output
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: rustdesk-windows
-          path: |
-            flutter/build/windows/x64/runner/Release/
+          path: target\release\
