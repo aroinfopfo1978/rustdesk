@@ -79,6 +79,7 @@ jobs:
         with:
           submodules: recursive
           fetch-depth: 0
+
       - name: Forcar o commit estavel
         run: git reset --hard 64faa8c
 
@@ -127,22 +128,22 @@ jobs:
         with:
           prefix-key: ${{ matrix.job.os }}
 
-      - name: Setup vcpkg with Github Actions binary cache
-        uses: lukka/run-vcpkg@v11
-        with:
-          vcpkgDirectory: C:\vcpkg
-          vcpkgGitCommitId: ${{ env.VCPKG_COMMIT_ID }}
-          doNotCache: false
+      # ========== CORREÇÃO MANUAL DO VCPKG (INSERIDA AQUI) ==========
+      - name: Setup VCPKG Manual
+        shell: bash
+        run: |
+          git clone https://github.com/microsoft/vcpkg.git
+          ./vcpkg/bootstrap-vcpkg.bat
+          echo "VCPKG_ROOT=$PWD/vcpkg" >> $GITHUB_ENV
+          echo "$PWD/vcpkg" >> $GITHUB_PATH
+      # =============================================================
 
       - name: Install vcpkg dependencies
         env:
           VCPKG_DEFAULT_HOST_TRIPLET: ${{ matrix.job.vcpkg-triplet }}
         run: |
-          if ! $VCPKG_ROOT/vcpkg \
-            install \
-            --triplet ${{ matrix.job.vcpkg-triplet }} \
-            --x-install-root="$VCPKG_ROOT/installed"; then
-            find "${VCPKG_ROOT}/" -name "*.log" | while read -r _1; do
+          if ! ./vcpkg/vcpkg install --triplet ${{ matrix.job.vcpkg-triplet }} --x-install-root="./vcpkg/installed"; then
+            find "./vcpkg/" -name "*.log" | while read -r _1; do
               echo "$_1:"
               echo "======"
               cat "$_1"
@@ -151,7 +152,7 @@ jobs:
             done
             exit 1
           fi
-          head -n 100 "${VCPKG_ROOT}/buildtrees/ffmpeg/build-${{ matrix.job.vcpkg-triplet }}-rel-out.log" || true
+          head -n 100 "./vcpkg/buildtrees/ffmpeg/build-${{ matrix.job.vcpkg-triplet }}-rel-out.log" || true
         shell: bash
 
       - name: Build rustdesk
@@ -276,21 +277,21 @@ jobs:
         with:
           prefix-key: ${{ matrix.job.os }}-sciter
 
-      - name: Setup vcpkg with Github Actions binary cache
-        uses: lukka/run-vcpkg@v11
-        with:
-          vcpkgDirectory: C:\vcpkg
-          vcpkgGitCommitId: ${{ env.VCPKG_COMMIT_ID }}
-          doNotCache: false
+      # ========== CORREÇÃO MANUAL DO VCPKG (INSERIDA AQUI) ==========
+      - name: Setup VCPKG Manual
+        shell: bash
+        run: |
+          git clone https://github.com/microsoft/vcpkg.git
+          ./vcpkg/bootstrap-vcpkg.bat
+          echo "VCPKG_ROOT=$PWD/vcpkg" >> $GITHUB_ENV
+          echo "$PWD/vcpkg" >> $GITHUB_PATH
+      # =============================================================
 
       - name: Install vcpkg dependencies
         env:
           VCPKG_DEFAULT_HOST_TRIPLET: ${{ matrix.job.vcpkg-triplet }}
         run: |
-          if ! $VCPKG_ROOT/vcpkg \
-            install \
-            --triplet ${{ matrix.job.vcpkg-triplet }} \
-            --x-install-root="$VCPKG_ROOT/installed"; then
+          if ! ./vcpkg/vcpkg install --triplet ${{ matrix.job.vcpkg-triplet }} --x-install-root="./vcpkg/installed"; then
             exit 1
           fi
         shell: bash
