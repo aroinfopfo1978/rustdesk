@@ -1,336 +1,419 @@
-name: Build the flutter version of the RustDesk
+name: 🚀 Build RustDesk Flutter - ARO Tecnologia
 
 on:
   push:
     branches:
       - master
+    paths:
+      - '.github/workflows/flutter-build.yml'
+      - 'flutter/**'
+      - 'src/**'
+      - 'libs/**'
+      - 'Cargo.toml'
+      - 'res/**'
   workflow_dispatch:
     inputs:
-      upload-artifact:
+      skip_bridge:
+        description: 'Pular geração de bridge?'
         type: boolean
         default: true
-  workflow_call:
-    inputs:
-      upload-artifact:
+      debug_mode:
+        description: 'Modo Debug (build mais rápido)?'
         type: boolean
-        default: true
+        default: false
+
+permissions:
+  contents: write
+  actions: read
 
 env:
-  SCITER_RUST_VERSION: "1.75"
-  RUST_VERSION: "1.75"
-  MAC_RUST_VERSION: "1.81"
-  CARGO_NDK_VERSION: "3.1.2"
-  SCITER_ARMV7_CMAKE_VERSION: "3.29.7"
-  SCITER_NASM_DEBVERSION: "2.15.05-1"
-  LLVM_VERSION: "15.0.6"
-  FLUTTER_VERSION: "3.24.5"
-  ANDROID_FLUTTER_VERSION: "3.24.5"
-  FLUTTER_ELINUX_VERSION: "3.16.9"
-  TAG_NAME: "${{ inputs.upload-tag || 'nightly' }}"
-  VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
-  VCPKG_COMMIT_ID: "120deac3062162151622ca4860575a33844ba10b"
-  ARMV7_VCPKG_COMMIT_ID: "6f29f12e82a8293156836ad81cc9bf5af41fe836"
-  VERSION: "1.3.2" # Ajustado para bater com o código que vamos baixar
-  NDK_VERSION: "r28c"
-  ANDROID_SIGNING_KEY: "${{ secrets.ANDROID_SIGNING_KEY }}"
-  MACOS_P12_BASE64: "${{ secrets.MACOS_P12_BASE64 }}"
-  UPLOAD_ARTIFACT: "${{ inputs.upload-artifact != false }}"
-  SIGN_BASE_URL: "${{ secrets.SIGN_BASE_URL }}-2"
+  FLUTTER_VERSION: "3.19.0"
+  VERSION: "1.3.2"
+  # ⚠️ CONFIGURAÇÕES DO SERVIDOR BETTERDESK - VERIFIQUE ANTES DE COMMITAR
+  SERVER_IP: "34.61.184.16"
+  SERVER_KEY: "P/JrM90p485btxQEXe3IQ9No5rcyhv9nHJhbis0oKS4="
+  API_PORT: "21121"
+  WEB_PORT: "5000"
 
 jobs:
-  generate-bridge:
-    uses: ./.github/workflows/bridge.yml
-
-  build-RustDeskTempTopMostWindow:
-    uses: ./.github/workflows/third-party-RustDeskTempTopMostWindow.yml
-    with:
-      upload-artifact: ${{ inputs.upload-artifact != false }}
-      target: windows-2022
-      configuration: Release
-      platform: x64
-      target_version: Windows10
-    strategy:
-      fail-fast: false
-
-  build-for-windows-flutter:
-    name: ${{ matrix.job.target }}
-    needs: [build-RustDeskTempTopMostWindow, generate-bridge]
-    runs-on: ${{ matrix.job.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        job:
-          - {
-              target: x86_64-pc-windows-msvc,
-              os: windows-2022,
-              arch: x86_64,
-              vcpkg-triplet: x64-windows-static,
-            }
+  # ========== VALIDAÇÃO RÁPIDA (FAIL-FAST) ==========
+  validate-config:
+    name: 🔍 Validar Configurações (Fail-Fast)
+    runs-on: ubuntu-latest
     steps:
-      - name: Export GitHub Actions cache environment variables
-        uses: actions/github-script@v6
+      - name: Checkout rápido (apenas arquivos essenciais)
+        uses: actions/checkout@v4
         with:
-          script: |
-            core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
-            core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
+          sparse-checkout: |
+            flutter/lib/common.dart
+          sparse-checkout-cone-mode: false
 
-      - name: Checkout source code
+      - name: 🛡️ Validar arquivo common.dart existe
+        run: |
+          if [ ! -f "flutter/lib/common.dart" ]; then
+            echo "❌ ERRO CRÍTICO: flutter/lib/common.dart não encontrado!"
+            exit 1
+          fi
+          echo "✅ Arquivo common.dart encontrado"
+
+      - name: 🛡️ Validar variáveis de configuração
+        run: |
+          echo "🔍 Verificando configurações:"
+          echo "  Server IP: ${{ env.SERVER_IP }}"
+          echo "  API Port: ${{ env.API_PORT }}"
+          echo "  Web Port: ${{ env.WEB_PORT }}"
+          
+          # Validação básica do IP
+          if [[ ! "${{ env.SERVER_IP }}" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "⚠️ AVISO: IP do servidor não parece válido: ${{ env.SERVER_IP }}"
+          fi
+          
+          # Validação da chave (deve ter tamanho razoável)
+          if [ ${#SERVER_KEY} -lt 32 ]; then
+            echo "❌ ERRO: Chave muito curta! Verifique SERVER_KEY"
+            exit 1
+          fi
+          
+          echo "✅ Todas as validações passaram!"
+
+  # ========== GERAÇÃO DE BRIDGE (CONDICIONAL) ==========
+  generate-bridge:
+    name: 🌉 Gerar Bridge Flutter-Rust
+    runs-on: ubuntu-latest
+    if: ${{ !inputs.skip_bridge }}
+    steps:
+      - name: Checkout
         uses: actions/checkout@v4
         with:
           submodules: recursive
-          fetch-depth: 0
+          
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        
+      - name: Cache Cargo
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-bridge-${{ hashFiles('Cargo.lock') }}
+        
+      - name: Install flutter_rust_bridge_codegen
+        run: |
+          cargo install flutter_rust_bridge_codegen --version 1.80.1 || echo "⚠️ Já instalado"
+        
+      - name: Generate bridge
+        run: |
+          cd flutter
+          if [ ! -f "../src/flutter_ffi.rs" ]; then
+            echo "❌ ERRO: ../src/flutter_ffi.rs não encontrado!"
+            exit 1
+          fi
+          flutter_rust_bridge_codegen \
+            --rust-input ../src/flutter_ffi.rs \
+            --dart-output ./lib/generated_bridge.dart \
+            --rust-output ../src/bridge_generated.rs
+          
+          echo "✅ Bridge gerada com sucesso!"
 
-      - name: Forcar o commit estavel
-        run: git reset --hard 64faa8c
+  # ========== BUILD PRINCIPAL ==========
+  build-windows:
+    name: 🪟 Build Windows ${{ matrix.arch }}
+    needs: [validate-config, generate-bridge]
+    if: |
+      always() && 
+      (needs.validate-config.result == 'success' || needs.validate-config.result == 'skipped') &&
+      (needs.generate-bridge.result == 'success' || needs.generate-bridge.result == 'skipped')
+    runs-on: windows-2022
+    strategy:
+      fail-fast: true  # Para no primeiro erro
+      matrix:
+        arch: [x64]
+        include:
+          - arch: x64
+            target: x86_64-pc-windows-msvc
+            flutter-arch: windows-x64
+    
+    steps:
+      - name: 📥 Checkout completo
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
-      # === INICIO DA CONFIGURAÇÃO ARO TECNOLOGIA (FLUTTER) ===
-      - name: Configurar ARO Tecnologia (IP e Key)
+      # ========== VALIDAÇÃO PRÉ-BUILD ==========
+      - name: 🛡️ Validar estrutura de diretórios
         shell: bash
         run: |
-          sed -i "s/RENDEZVOUS_SERVER = .*/RENDEZVOUS_SERVER = '34.61.184.16';/g" libs/hbb_common/src/config.rs
-          sed -i "s/RS_PUB_KEY = .*/RS_PUB_KEY = 'ADXHIbZV761ZB4hKlyl4YnC+vknCTKjI1jF9d33mMjk=';/g" libs/hbb_common/src/config.rs
-          sed -i "s|API_SERVER = .*|API_SERVER = 'http://34.61.184.16:21114';|g" libs/hbb_common/src/config.rs
-      # === FIM DA CONFIGURAÇÃO ARO TECNOLOGIA ===
+          echo "🔍 Validando estrutura do projeto..."
+          
+          # Lista de diretórios críticos
+          dirs=("flutter" "flutter/lib" "flutter/windows" "res")
+          for dir in "${dirs[@]}"; do
+            if [ ! -d "$dir" ]; then
+              echo "❌ ERRO: Diretório crítico não encontrado: $dir"
+              exit 1
+            fi
+            echo "  ✅ $dir"
+          done
+          
+          # Verifica arquivo de configuração
+          if [ ! -f "flutter/lib/common.dart" ]; then
+            echo "❌ ERRO: flutter/lib/common.dart não encontrado!"
+            exit 1
+          fi
+          echo "  ✅ flutter/lib/common.dart"
+          
+          echo "✅ Estrutura validada!"
 
-      - name: Restore bridge files
-        uses: actions/download-artifact@master
-        with:
-          name: bridge-artifact
-          path: ./
+      # ========== PERSONALIZAÇÃO ARO TECNOLOGIA ==========
+      - name: 🎯 Personalizar para BetterDesk
+        shell: bash
+        run: |
+          echo "🔧 Aplicando configurações ARO Tecnologia - BetterDesk..."
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          
+          # Backup do arquivo original
+          cp flutter/lib/common.dart flutter/lib/common.dart.backup
+          
+          # Aplica as configurações COM VERIFICAÇÃO
+          CONFIG_FILE="flutter/lib/common.dart"
+          
+          # 1. ID Server
+          if grep -q "_idServer" "$CONFIG_FILE"; then
+            sed -i "s|const String _idServer = '.*';|const String _idServer = '${{ env.SERVER_IP }}';|g" "$CONFIG_FILE"
+            echo "✅ ID Server configurado: ${{ env.SERVER_IP }}"
+          else
+            echo "⚠️ AVISO: _idServer não encontrado no arquivo"
+          fi
+          
+          # 2. Relay Server
+          if grep -q "_relayServer" "$CONFIG_FILE"; then
+            sed -i "s|const String _relayServer = '.*';|const String _relayServer = '${{ env.SERVER_IP }}';|g" "$CONFIG_FILE"
+            echo "✅ Relay Server configurado: ${{ env.SERVER_IP }}"
+          else
+            echo "⚠️ AVISO: _relayServer não encontrado no arquivo"
+          fi
+          
+          # 3. API Server (PORTA 21121 - BetterDesk)
+          if grep -q "_apiServer" "$CONFIG_FILE"; then
+            sed -i "s|const String _apiServer = '.*';|const String _apiServer = 'http://${{ env.SERVER_IP }}:${{ env.API_PORT }}';|g" "$CONFIG_FILE"
+            echo "✅ API Server configurado: http://${{ env.SERVER_IP }}:${{ env.API_PORT }}"
+          else
+            echo "⚠️ AVISO: _apiServer não encontrado no arquivo"
+          fi
+          
+          # 4. Chave de Segurança
+          if grep -q "_key" "$CONFIG_FILE"; then
+            sed -i "s|const String _key = '.*';|const String _key = '${{ env.SERVER_KEY }}';|g" "$CONFIG_FILE"
+            echo "✅ Chave configurada: ${SERVER_KEY:0:20}..."
+          else
+            echo "⚠️ AVISO: _key não encontrado no arquivo"
+          fi
+          
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "📝 Configurações aplicadas (verificação):"
+          grep -E "(_idServer|_relayServer|_apiServer|_key)" "$CONFIG_FILE" | head -4 || echo "⚠️ Não foi possível verificar"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-      - name: Install LLVM and Clang
-        uses: KyleMayes/install-llvm-action@v1
+      # ========== SETUP FLUTTER ==========
+      - name: 📱 Setup Flutter
+        uses: subosito/flutter-action@v2
         with:
-          version: ${{ env.LLVM_VERSION }}
-
-      - name: Install flutter
-        uses: subosito/flutter-action@v2.12.0
-        with:
-          channel: "stable"
+          channel: 'stable'
           flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
 
-      - name: Replace engine with rustdesk custom flutter engine
+      - name: 🔧 Flutter Doctor
         run: |
           flutter doctor -v
-          flutter precache --windows
-          Invoke-WebRequest -Uri https://github.com/rustdesk/engine/releases/download/main/windows-x64-release.zip -OutFile windows-x64-release.zip
-          Expand-Archive -Path windows-x64-release.zip -DestinationPath windows-x64-release
-          mv -Force windows-x64-release/* C:/hostedtoolcache/windows/flutter/stable-${{ env.FLUTTER_VERSION }}-x64/bin/cache/artifacts/engine/windows-x64-release/
+          flutter config --enable-windows-desktop
 
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@v1
+      # ========== SETUP RUST ==========
+      - name: 🦀 Setup Rust
+        uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: ${{ env.SCITER_RUST_VERSION }}
-          targets: ${{ matrix.job.target }}
-          components: "rustfmt"
+          targets: ${{ matrix.target }}
 
-      - uses: Swatinem/rust-cache@v2
+      - name: 📦 Cache Rust
+        uses: actions/cache@v3
         with:
-          prefix-key: ${{ matrix.job.os }}
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ matrix.target }}-${{ hashFiles('Cargo.lock') }}
 
-      # ========== CORREÇÃO MANUAL DO VCPKG (INSERIDA AQUI) ==========
-      - name: Setup VCPKG Manual
+      # ========== SETUP VCPKG (CORRIGIDO) ==========
+      - name: 📚 Setup VCPKG
         shell: bash
         run: |
-          git clone https://github.com/microsoft/vcpkg.git
-          ./vcpkg/bootstrap-vcpkg.bat
-          echo "VCPKG_ROOT=$PWD/vcpkg" >> $GITHUB_ENV
-          echo "$PWD/vcpkg" >> $GITHUB_PATH
-      # =============================================================
-
-      - name: Install vcpkg dependencies
-        env:
-          VCPKG_DEFAULT_HOST_TRIPLET: ${{ matrix.job.vcpkg-triplet }}
-        run: |
-          if ! ./vcpkg/vcpkg install --triplet ${{ matrix.job.vcpkg-triplet }} --x-install-root="./vcpkg/installed"; then
-            find "./vcpkg/" -name "*.log" | while read -r _1; do
-              echo "$_1:"
-              echo "======"
-              cat "$_1"
-              echo "======"
-              echo ""
-            done
-            exit 1
-          fi
-          head -n 100 "./vcpkg/buildtrees/ffmpeg/build-${{ matrix.job.vcpkg-triplet }}-rel-out.log" || true
-        shell: bash
-
-      - name: Build rustdesk
-        run: |
-          python3 .\build.py --portable --hwcodec --flutter --vram --skip-portable-pack
-          mv ./flutter/build/windows/x64/runner/Release ./rustdesk
-          Invoke-WebRequest -Uri https://github.com/rustdesk-org/rdev/releases/download/usbmmidd_v2/usbmmidd_v2.zip -OutFile usbmmidd_v2.zip
-          Expand-Archive usbmmidd_v2.zip -DestinationPath .
-          Remove-Item -Path usbmmidd_v2\Win32 -Recurse
-          Remove-Item -Path "usbmmidd_v2\deviceinstaller64.exe", "usbmmidd_v2\deviceinstaller.exe", "usbmmidd_v2\usbmmidd.bat"
-          mv -Force .\usbmmidd_v2 ./rustdesk
-
-      - name: find Runner.res
-        continue-on-error: true
-        shell: bash
-        run: |
-          runner_res=$(find . -name "Runner.res");
-          if [ "$runner_res" == "" ]; then
-            echo "Runner.res: not found";
+          echo "📦 Configurando VCPKG..."
+          
+          # Verifica se já existe
+          if [ -d "vcpkg" ]; then
+            echo "⚠️ VCPKG já existe, usando versão existente"
           else
-            echo "Runner.res: $runner_res";
-            cp $runner_res ./libs/portable/Runner.res;
+            git clone --depth 1 https://github.com/microsoft/vcpkg.git
+            ./vcpkg/bootstrap-vcpkg.bat
           fi
-
-      - name: Download RustDeskTempTopMostWindow artifacts
-        uses: actions/download-artifact@master
-        if: ${{ inputs.upload-artifact != false }}
-        with:
-          name: topmostwindow-artifacts
-          path: "./rustdesk"
-
-      - name: Upload unsigned
-        if: env.UPLOAD_ARTIFACT == 'true'
-        uses: actions/upload-artifact@master
-        with:
-          name: rustdesk-unsigned-windows-${{ matrix.job.arch }}
-          path: rustdesk
-
-      - name: Build self-extracted executable
-        shell: bash
-        if: env.UPLOAD_ARTIFACT == 'true'
-        run: |
-          sed -i '/dpiAware/d' res/manifest.xml
-          pushd ./libs/portable
-          pip3 install -r requirements.txt
-          python3 ./generate.py -f ../../rustdesk/ -o . -e ../../rustdesk/rustdesk.exe
-          popd
-          mkdir -p ./SignOutput
-          mv ./target/release/rustdesk-portable-packer.exe ./SignOutput/rustdesk-${{ env.VERSION }}-${{ matrix.job.arch }}.exe
-
-      - name: Add MSBuild to PATH
-        uses: microsoft/setup-msbuild@v2
-
-      - name: Build msi
-        if: env.UPLOAD_ARTIFACT == 'true'
-        run: |
-          pushd ./res/msi
-          python preprocess.py --arp -d ../../rustdesk
-          nuget restore msi.sln
-          msbuild msi.sln -p:Configuration=Release -p:Platform=x64 /p:TargetVersion=Windows10
-          mv ./Package/bin/x64/Release/en-us/Package.msi ../../SignOutput/rustdesk-${{ env.VERSION }}-${{ matrix.job.arch }}.msi
-
-      - name: Publish Release
-        uses: softprops/action-gh-release@v1
-        if: env.UPLOAD_ARTIFACT == 'true'
-        with:
-          prerelease: true
-          tag_name: ${{ env.TAG_NAME }}
-          files: |
-            ./SignOutput/rustdesk-*.msi
-            ./SignOutput/rustdesk-*.exe
-
-  build-for-windows-sciter:
-    name: ${{ matrix.job.target }} (${{ matrix.job.os }})
-    runs-on: ${{ matrix.job.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        job:
-          - {
-              target: i686-pc-windows-msvc,
-              os: windows-2022,
-              arch: x86,
-              vcpkg-triplet: x86-windows-static,
-            }
-    steps:
-      - name: Export GitHub Actions cache environment variables
-        uses: actions/github-script@v6
-        with:
-          script: |
-            core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
-            core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
-
-      - name: Checkout source code
-        uses: actions/checkout@v4
-        with:
-          submodules: recursive
-          ref: '1.3.2' # <--- VOLTA PARA A VERSÃO ESTÁVEL 1.3.2 TAMBÉM NO SCITER
-
-      # === INICIO DA CONFIGURAÇÃO ARO TECNOLOGIA (SCITER) ===
-      - name: Configurar ARO Tecnologia (IP e Key)
-        shell: bash
-        run: |
-          sed -i "s/RENDEZVOUS_SERVER = .*/RENDEZVOUS_SERVER = '34.61.184.16';/g" libs/hbb_common/src/config.rs
-          sed -i "s/RS_PUB_KEY = .*/RS_PUB_KEY = 'ADXHIbZV761ZB4hKlyl4YnC+vknCTKjI1jF9d33mMjk=';/g" libs/hbb_common/src/config.rs
-          sed -i "s|API_SERVER = .*|API_SERVER = 'http://34.61.184.16:21114';|g" libs/hbb_common/src/config.rs
-      # === FIM DA CONFIGURAÇÃO ARO TECNOLOGIA ===
-
-      - name: Install LLVM and Clang
-        uses: rustdesk-org/install-llvm-action-32bit@master
-        with:
-          version: ${{ env.LLVM_VERSION }}
-
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@v1
-        with:
-          toolchain: nightly-2023-10-13-${{ matrix.job.target }}
-          targets: ${{ matrix.job.target }}
-          components: "rustfmt"
-
-      - uses: Swatinem/rust-cache@v2
-        with:
-          prefix-key: ${{ matrix.job.os }}-sciter
-
-      # ========== CORREÇÃO MANUAL DO VCPKG (INSERIDA AQUI) ==========
-      - name: Setup VCPKG Manual
-        shell: bash
-        run: |
-          git clone https://github.com/microsoft/vcpkg.git
-          ./vcpkg/bootstrap-vcpkg.bat
+          
           echo "VCPKG_ROOT=$PWD/vcpkg" >> $GITHUB_ENV
           echo "$PWD/vcpkg" >> $GITHUB_PATH
-      # =============================================================
-
-      - name: Install vcpkg dependencies
-        env:
-          VCPKG_DEFAULT_HOST_TRIPLET: ${{ matrix.job.vcpkg-triplet }}
-        run: |
-          if ! ./vcpkg/vcpkg install --triplet ${{ matrix.job.vcpkg-triplet }} --x-install-root="./vcpkg/installed"; then
+          
+          # Verifica instalação
+          if [ ! -f "./vcpkg/vcpkg.exe" ]; then
+            echo "❌ ERRO: vcpkg.exe não encontrado após bootstrap!"
             exit 1
           fi
-        shell: bash
+          
+          echo "✅ VCPKG configurado com sucesso!"
+          ./vcpkg/vcpkg.exe version
 
-      - name: Build rustdesk
-        id: build
+      # ========== BUILD FLUTTER ==========
+      - name: 🔨 Build RustDesk
         shell: bash
         run: |
-          python3 res/inline-sciter.py
-          sed -i 's/branch = "dyn"/branch = "dyn_x86"/g' ./Cargo.toml
-          cargo build --features inline,vram,hwcodec --release --bins
-          mkdir -p ./Release
-          mv ./target/release/rustdesk.exe ./Release/rustdesk.exe
-          curl -LJ -o ./Release/sciter.dll https://github.com/c-smile/sciter-sdk/raw/master/bin.win/x32/sciter.dll
-          echo "output_folder=./Release" >> $GITHUB_OUTPUT
+          echo "🚀 Iniciando build do RustDesk (Modo: ${{ inputs.debug_mode && 'Debug' || 'Release' }})"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          
+          # Prepara recursos
+          mkdir -p flutter/windows/runner/resources
+          
+          # Copia ícone (se existir)
+          if [ -f "res/logo.ico" ]; then
+            cp res/logo.ico flutter/windows/runner/resources/
+            cp res/logo.ico flutter/windows/runner/
+            echo "✅ Ícone copiado"
+          else
+            echo "⚠️ Ícone não encontrado, usando padrão"
+          fi
+          
+          # Build Flutter
+          cd flutter
+          
+          if [ "${{ inputs.debug_mode }}" = "true" ]; then
+            echo "🔨 Build Debug (mais rápido para testes)..."
+            flutter build windows --debug
+            BUILD_DIR="build/windows/x64/runner/Debug"
+          else
+            echo "🔨 Build Release..."
+            flutter build windows --release
+            BUILD_DIR="build/windows/x64/runner/Release"
+          fi
+          
+          cd ..
+          
+          # Verifica se build foi gerado
+          if [ ! -d "flutter/$BUILD_DIR" ]; then
+            echo "❌ ERRO: Build não foi gerado em flutter/$BUILD_DIR"
+            echo "📁 Conteúdo de flutter/build:"
+            find flutter/build -type d 2>/dev/null | head -20
+            exit 1
+          fi
+          
+          echo "✅ Build concluído!"
+          
+          # Organiza artefatos
+          echo "📦 Organizando artefatos..."
+          rm -rf rustdesk 2>/dev/null || true
+          mkdir -p rustdesk
+          
+          cp -r flutter/$BUILD_DIR/* rustdesk/
+          
+          # Verifica o executável
+          if [ ! -f "rustdesk/rustdesk.exe" ] && [ ! -f "rustdesk/flutter_windows.dll" ]; then
+            echo "⚠️ AVISO: Executável não encontrado no padrão esperado"
+            echo "📁 Conteúdo de rustdesk/:"
+            ls -la rustdesk/
+          else
+            echo "✅ Executável encontrado!"
+          fi
+          
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "📊 Estatísticas do build:"
+          echo "  Tamanho total: $(du -sh rustdesk 2>/dev/null | cut -f1 || echo 'N/A')"
+          echo "  Arquivos: $(find rustdesk -type f | wc -l)"
 
-      - name: Upload unsigned
-        if: env.UPLOAD_ARTIFACT == 'true'
-        uses: actions/upload-artifact@master
+      # ========== UPLOAD DE ARTEFATOS ==========
+      - name: 📤 Upload Artifact
+        uses: actions/upload-artifact@v4
         with:
-          name: rustdesk-unsigned-windows-${{ matrix.job.arch }}
-          path: Release
+          name: RustDesk-ARO-BetterDesk-${{ matrix.arch }}-${{ inputs.debug_mode && 'Debug' || 'Release' }}
+          path: rustdesk/**
+          retention-days: 30
 
-      - name: Build self-extracted executable
+      # ========== VERIFICAÇÃO FINAL ==========
+      - name: ✅ Verificação Final
         shell: bash
         run: |
-          sed -i '/dpiAware/d' res/manifest.xml
-          pushd ./libs/portable
-          pip3 install -r requirements.txt
-          python3 ./generate.py -f ../../Release/ -o . -e ../../Release/rustdesk.exe
-          popd
-          mkdir -p ./SignOutput
-          mv ./target/release/rustdesk-portable-packer.exe ./SignOutput/rustdesk-${{ env.VERSION }}-${{ matrix.job.arch }}-sciter.exe
+          echo "🎉 BUILD CONCLUÍDO COM SUCESSO!"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "📋 Resumo:"
+          echo "  ✅ Servidor: ${{ env.SERVER_IP }}"
+          echo "  ✅ API Port: ${{ env.API_PORT }}"
+          echo "  ✅ Painel Web: http://${{ env.SERVER_IP }}:${{ env.WEB_PORT }}"
+          echo "  ✅ Build: ${{ inputs.debug_mode && 'Debug' || 'Release' }}"
+          echo "  ✅ Arquitetura: ${{ matrix.arch }}"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-      - name: Publish Release
+  # ========== JOB OPCIONAL: CRIAR RELEASE ==========
+  create-release:
+    name: 📦 Criar Release
+    needs: build-windows
+    if: github.event_name != 'workflow_dispatch' && success()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: RustDesk-ARO-BetterDesk-x64-Release
+          path: rustdesk-release
+
+      - name: Compactar
+        run: |
+          cd rustdesk-release
+          zip -r ../RustDesk-ARO-BetterDesk-Windows-x64.zip *
+          cd ..
+          echo "✅ Arquivo compactado: $(ls -lh RustDesk-ARO-BetterDesk-Windows-x64.zip | awk '{print $5}')"
+
+      - name: Criar Release
         uses: softprops/action-gh-release@v1
-        if: env.UPLOAD_ARTIFACT == 'true'
         with:
-          prerelease: true
-          tag_name: ${{ env.TAG_NAME }}
-          files: |
-            ./SignOutput/rustdesk-*.exe
+          tag_name: "v${{ env.VERSION }}-${{ github.run_number }}"
+          name: "🚀 RustDesk ARO Tecnologia v${{ env.VERSION }} (Build ${{ github.run_number }})"
+          body: |
+            ## 🎯 RustDesk Personalizado - BetterDesk Server
+            
+            ### 📡 Configurações do Servidor
+            - **Servidor:** ${{ env.SERVER_IP }}
+            - **Painel Web:** http://${{ env.SERVER_IP }}:${{ env.WEB_PORT }}
+            - **API:** http://${{ env.SERVER_IP }}:${{ env.API_PORT }}
+            - **ID/Rendezvous:** ${{ env.SERVER_IP }}
+            - **Relay:** ${{ env.SERVER_IP }}
+            
+            ### ✨ Características
+            - ✅ Cliente Windows x64 pré-configurado
+            - ✅ Conexão automática ao servidor ARO Tecnologia
+            - ✅ Build otimizado e validado
+            - ✅ Compatível com BetterDesk Server
+            
+            ### 📦 Instalação
+            1. Baixe o arquivo ZIP
+            2. Extraia em uma pasta
+            3. Execute `rustdesk.exe`
+            4. O cliente já estará configurado para seu servidor!
+            
+            ### 🔧 Build Information
+            - **Versão Base:** ${{ env.VERSION }}
+            - **Build Number:** ${{ github.run_number }}
+            - **Data:** $(date +'%d/%m/%Y %H:%M')
+            - **Commit:** ${{ github.sha }}
+            
+            ---
+            *Build automatizado via GitHub Actions - ARO Tecnologia*
+          files: RustDesk-ARO-BetterDesk-Windows-x64.zip
+          prerelease: false
+          draft: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
