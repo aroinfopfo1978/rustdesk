@@ -86,10 +86,9 @@ jobs:
       - name: Configurar ARO Tecnologia (IP e Key)
         shell: bash
         run: |
-          sed -i "s/RENDEZVOUS_SERVER = .*/RENDEZVOUS_SERVER = '34.61.184.16';/g" libs/hbb_common/src/config.rs
-          sed -i "s/RS_PUB_KEY = .*/RS_PUB_KEY = 'P/JrM90p485btxQEXe3IQ9No5rcyhv9nHJhbis0oKS4=';/g" libs/hbb_common/src/config.rs
-          # API_SERVER REMOVIDO - BETTERDESK NÃO USA
-          sed -i "s|API_SERVER = .*|// API_SERVER removido - BetterDesk|g" libs/hbb_common/src/config.rs
+          sed -i "s#RENDEZVOUS_SERVER = .*#RENDEZVOUS_SERVER = '34.61.184.16';#g" libs/hbb_common/src/config.rs
+          sed -i "s#RS_PUB_KEY = .*#RS_PUB_KEY = 'P/JrM90p485btxQEXe3IQ9No5rcyhv9nHJhbis0oKS4=';#g" libs/hbb_common/src/config.rs
+          sed -i "s#API_SERVER = .*#// API_SERVER removido - BetterDesk#g" libs/hbb_common/src/config.rs
       # === FIM DA CONFIGURAÇÃO ARO TECNOLOGIA ===
 
       - name: Restore bridge files
@@ -258,10 +257,9 @@ jobs:
       - name: Configurar ARO Tecnologia (IP e Key)
         shell: bash
         run: |
-          sed -i "s/RENDEZVOUS_SERVER = .*/RENDEZVOUS_SERVER = '34.61.184.16';/g" libs/hbb_common/src/config.rs
-          sed -i "s/RS_PUB_KEY = .*/RS_PUB_KEY = 'P/JrM90p485btxQEXe3IQ9No5rcyhv9nHJhbis0oKS4=';/g" libs/hbb_common/src/config.rs
-          # API_SERVER REMOVIDO - BETTERDESK NÃO USA
-          sed -i "s|API_SERVER = .*|// API_SERVER removido - BetterDesk|g" libs/hbb_common/src/config.rs
+          sed -i "s#RENDEZVOUS_SERVER = .*#RENDEZVOUS_SERVER = '34.61.184.16';#g" libs/hbb_common/src/config.rs
+          sed -i "s#RS_PUB_KEY = .*#RS_PUB_KEY = 'P/JrM90p485btxQEXe3IQ9No5rcyhv9nHJhbis0oKS4=';#g" libs/hbb_common/src/config.rs
+          sed -i "s#API_SERVER = .*#// API_SERVER removido - BetterDesk#g" libs/hbb_common/src/config.rs
       # === FIM DA CONFIGURAÇÃO ARO TECNOLOGIA ===
 
       - name: Install LLVM and Clang
