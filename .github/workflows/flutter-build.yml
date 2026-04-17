@@ -65,13 +65,39 @@ jobs:
           python-version: "3.11"
 
       # =============================
-      # VCPKG (CRÍTICO)
+      # VCPKG (OTIMIZADO - SEM TIMEOUT)
       # =============================
-      - name: Instalar vcpkg
-        shell: cmd
+      - name: Instalar vcpkg (versão pré-compilada)
+        shell: pwsh
         run: |
-          git clone https://github.com/microsoft/vcpkg.git C:\vcpkg
-          C:\vcpkg\bootstrap-vcpkg.bat
+          $vcpkgDir = "C:\vcpkg"
+          New-Item -ItemType Directory -Path $vcpkgDir -Force | Out-Null
+          
+          # Download pre-built vcpkg binary com retry logic
+          $vcpkgUrl = "https://github.com/microsoft/vcpkg-tool/releases/download/2025-01-11/vcpkg.exe"
+          $vcpkgPath = "$vcpkgDir\vcpkg.exe"
+          $maxRetries = 3
+          $retryCount = 0
+          $success = $false
+          
+          while ($retryCount -lt $maxRetries -and -not $success) {
+            try {
+              Write-Host "Tentativa $($retryCount + 1)/$maxRetries para baixar vcpkg.exe..."
+              $ProgressPreference = 'SilentlyContinue'
+              Invoke-WebRequest -Uri $vcpkgUrl -OutFile $vcpkgPath -TimeoutSec 120 -ErrorAction Stop
+              Write-Host "✅ vcpkg.exe baixado com sucesso"
+              $success = $true
+            } catch {
+              $retryCount++
+              if ($retryCount -lt $maxRetries) {
+                Write-Host "⚠️ Falha no download, aguardando 10 segundos antes de tentar novamente..."
+                Start-Sleep -Seconds 10
+              } else {
+                Write-Host "❌ Falha ao baixar vcpkg após $maxRetries tentativas"
+                throw $_
+              }
+            }
+          }
 
       - name: Integrar vcpkg
         shell: cmd
@@ -81,7 +107,9 @@ jobs:
         uses: actions/cache@v4
         with:
           path: C:\vcpkg\installed
-          key: vcpkg-${{ runner.os }}
+          key: vcpkg-${{ runner.os }}-${{ hashFiles('**/vcpkg.json') }}
+          restore-keys: |
+            vcpkg-${{ runner.os }}-
 
       # =============================
       # VALIDAR ESTRUTURA (EVITA TEU ERRO)
