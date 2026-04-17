@@ -1,4 +1,4 @@
-name: RustDesk Windows Build
+name: RustDesk Custom Build (Windows)
 
 on:
   workflow_dispatch:
@@ -8,78 +8,117 @@ jobs:
     runs-on: windows-2022
 
     env:
-      RUST_VERSION: 1.75.0
       FLUTTER_VERSION: 3.24.5
+      RUST_VERSION: 1.75.0
+
+      # 🔧 SUAS CONFIGURAÇÕES (MANTIDAS)
+      RENDEZVOUS_SERVER: "SEU_IP_AQUI"
+      RS_PUB_KEY: "SUA_CHAVE_PUBLICA_AQUI"
 
     steps:
-      # Checkout
-      - name: Checkout
+
+      # =============================
+      # CHECKOUT
+      # =============================
+      - name: Checkout repository
         uses: actions/checkout@v4
         with:
           submodules: recursive
           fetch-depth: 0
 
-      - name: Fix submodules
+      - name: Garantir submodules consistentes
+        shell: bash
         run: |
           git submodule sync
           git submodule update --init --recursive --force
 
-      # Rust
-      - name: Install Rust
+      # =============================
+      # RUST
+      # =============================
+      - name: Instalar Rust
         uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: ${{ env.RUST_VERSION }}
 
-      # Flutter
-      - name: Install Flutter
+      # =============================
+      # FLUTTER
+      # =============================
+      - name: Instalar Flutter
         uses: subosito/flutter-action@v2
         with:
           flutter-version: ${{ env.FLUTTER_VERSION }}
 
-      # Python (necessário pro build.py)
-      - name: Setup Python
+      - name: Cache Flutter
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.pub-cache
+            flutter/bin/cache
+          key: flutter-${{ runner.os }}-${{ env.FLUTTER_VERSION }}
+
+      # =============================
+      # PYTHON (build.py)
+      # =============================
+      - name: Instalar Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
-      # vcpkg (DEPENDÊNCIA CRÍTICA)
-      - name: Setup vcpkg
+      # =============================
+      # VCPKG (CRÍTICO)
+      # =============================
+      - name: Instalar vcpkg
+        shell: cmd
         run: |
           git clone https://github.com/microsoft/vcpkg.git C:\vcpkg
           C:\vcpkg\bootstrap-vcpkg.bat
 
-      - name: Integrate vcpkg
+      - name: Integrar vcpkg
+        shell: cmd
         run: C:\vcpkg\vcpkg integrate install
 
-      # Cache vcpkg
       - name: Cache vcpkg
         uses: actions/cache@v4
         with:
           path: C:\vcpkg\installed
           key: vcpkg-${{ runner.os }}
 
-      # Dependências Flutter
+      # =============================
+      # VALIDAR ESTRUTURA (EVITA TEU ERRO)
+      # =============================
+      - name: Validar estrutura Flutter
+        shell: bash
+        run: |
+          if [ ! -d "flutter" ]; then
+            echo "ERRO: pasta flutter não encontrada"
+            exit 1
+          fi
+
+          ls flutter
+
+      # =============================
+      # FLUTTER DEPENDÊNCIAS
+      # =============================
       - name: Flutter pub get
+        shell: bash
         run: |
           cd flutter
           flutter clean
           flutter pub get
 
-      # DEBUG estrutura
-      - name: Check structure
-        run: |
-          dir flutter
-          dir flutter\libs
-          dir flutter\flutter_hbb
-
-      # Build principal (OFICIAL DO RUSTDESK)
+      # =============================
+      # BUILD (OFICIAL RUSTDESK)
+      # =============================
       - name: Build RustDesk
+        shell: cmd
         run: |
-          python3 .\build.py --portable --flutter --skip-portable-pack
+          python build.py --flutter --portable
 
-      # Output
-      - name: Upload artifact
+      # =============================
+      # OUTPUT
+      # =============================
+      - name: Upload executável
         uses: actions/upload-artifact@v4
         with:
-          name: rustdesk-windows
+          name: rustdesk-build
           path: target\release\
