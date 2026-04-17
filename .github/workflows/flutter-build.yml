@@ -27,7 +27,6 @@ env:
   ANDROID_FLUTTER_VERSION: "3.24.5"
   FLUTTER_ELINUX_VERSION: "3.16.9"
   TAG_NAME: "${{ inputs.upload-tag || 'nightly' }}"
-  # CORREÇÃO 1: x-gha foi removido do vcpkg moderno — usar apenas "clear"
   VCPKG_BINARY_SOURCES: "clear"
   VCPKG_COMMIT_ID: "120deac3062162151622ca4860575a33844ba10b"
   ARMV7_VCPKG_COMMIT_ID: "6f29f12e82a8293156836ad81cc9bf5af41fe836"
@@ -81,9 +80,6 @@ jobs:
           submodules: recursive
           fetch-depth: 0
 
-      - name: Forcar o commit estavel
-        run: git reset --hard 64faa8c
-
       # === INICIO DA CONFIGURAÇÃO ARO TECNOLOGIA (FLUTTER) ===
       - name: Configurar ARO Tecnologia (IP e Key)
         shell: bash
@@ -130,7 +126,6 @@ jobs:
           prefix-key: ${{ matrix.job.os }}
 
       # === CORREÇÃO VCPKG MANUAL ===
-      # CORREÇÃO 2: Fixar o vcpkg e TRADUZIR O CAMINHO PARA O COMPILADOR WINDOWS
       - name: Setup vcpkg
         shell: bash
         run: |
@@ -160,6 +155,7 @@ jobs:
 
       - name: Build rustdesk
         run: |
+          cd flutter && flutter pub get && cd ..
           python3 .\build.py --portable --flutter --vram --skip-portable-pack
           mv ./flutter/build/windows/x64/runner/Release ./rustdesk
           Invoke-WebRequest -Uri https://github.com/rustdesk-org/rdev/releases/download/usbmmidd_v2/usbmmidd_v2.zip -OutFile usbmmidd_v2.zip
@@ -281,7 +277,6 @@ jobs:
           prefix-key: ${{ matrix.job.os }}-sciter
 
       # === CORREÇÃO VCPKG MANUAL ===
-      # CORREÇÃO 2: Fixar o vcpkg e TRADUZIR O CAMINHO PARA O COMPILADOR WINDOWS
       - name: Setup vcpkg
         shell: bash
         run: |
