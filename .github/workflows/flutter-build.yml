@@ -27,7 +27,8 @@ env:
   ANDROID_FLUTTER_VERSION: "3.24.5"
   FLUTTER_ELINUX_VERSION: "3.16.9"
   TAG_NAME: "${{ inputs.upload-tag || 'nightly' }}"
-  VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
+  # CORREÇÃO 1: x-gha foi removido do vcpkg moderno — usar apenas "clear"
+  VCPKG_BINARY_SOURCES: "clear"
   VCPKG_COMMIT_ID: "120deac3062162151622ca4860575a33844ba10b"
   ARMV7_VCPKG_COMMIT_ID: "6f29f12e82a8293156836ad81cc9bf5af41fe836"
   VERSION: "1.3.2"
@@ -79,7 +80,7 @@ jobs:
         with:
           submodules: recursive
           fetch-depth: 0
-          
+
       - name: Forcar o commit estavel
         run: git reset --hard 64faa8c
 
@@ -129,10 +130,13 @@ jobs:
           prefix-key: ${{ matrix.job.os }}
 
       # === CORREÇÃO VCPKG MANUAL ===
+      # CORREÇÃO 2: Fixar o vcpkg no commit exato definido em VCPKG_COMMIT_ID
+      # para garantir compatibilidade com os overlay ports do rustdesk (aom, ffmpeg, etc.)
       - name: Setup vcpkg
         shell: bash
         run: |
           git clone https://github.com/microsoft/vcpkg.git
+          git -C vcpkg checkout ${{ env.VCPKG_COMMIT_ID }}
           ./vcpkg/bootstrap-vcpkg.bat
           echo "VCPKG_ROOT=$(pwd)/vcpkg" >> $GITHUB_ENV
           echo "$(pwd)/vcpkg" >> $GITHUB_PATH
@@ -156,7 +160,7 @@ jobs:
 
       - name: Build rustdesk
         run: |
-          python3 .\build.py --portable --hwcodec --flutter --vram --skip-portable-pack
+          python3 .\build.py --portable --flutter --vram --skip-portable-pack
           mv ./flutter/build/windows/x64/runner/Release ./rustdesk
           Invoke-WebRequest -Uri https://github.com/rustdesk-org/rdev/releases/download/usbmmidd_v2/usbmmidd_v2.zip -OutFile usbmmidd_v2.zip
           Expand-Archive usbmmidd_v2.zip -DestinationPath .
@@ -222,4 +226,116 @@ jobs:
           tag_name: ${{ env.TAG_NAME }}
           files: |
             ./SignOutput/rustdesk-*.msi
+            ./SignOutput/rustdesk-*.exe
+
+  build-for-windows-sciter:
+    name: ${{ matrix.job.target }} (${{ matrix.job.os }})
+    runs-on: ${{ matrix.job.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        job:
+          - {
+              target: i686-pc-windows-msvc,
+              os: windows-2022,
+              arch: x86,
+              vcpkg-triplet: x86-windows-static,
+            }
+    steps:
+      - name: Export GitHub Actions cache environment variables
+        uses: actions/github-script@v6
+        with:
+          script: |
+            core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
+            core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
+
+      - name: Checkout source code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          ref: '1.3.2'
+
+      # === INICIO DA CONFIGURAÇÃO ARO TECNOLOGIA (SCITER) ===
+      - name: Configurar ARO Tecnologia (IP e Key)
+        shell: bash
+        run: |
+          sed -i "s#RENDEZVOUS_SERVER = .*#RENDEZVOUS_SERVER = '34.61.184.16';#g" libs/hbb_common/src/config.rs
+          sed -i "s#RS_PUB_KEY = .*#RS_PUB_KEY = 'P/JrM90p485btxQEXe3IQ9No5rcyhv9nHJhbis0oKS4=';#g" libs/hbb_common/src/config.rs
+          sed -i "s#API_SERVER = .*#// API_SERVER removido - BetterDesk#g" libs/hbb_common/src/config.rs
+      # === FIM DA CONFIGURAÇÃO ARO TECNOLOGIA ===
+
+      - name: Install LLVM and Clang
+        uses: rustdesk-org/install-llvm-action-32bit@master
+        with:
+          version: ${{ env.LLVM_VERSION }}
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@v1
+        with:
+          toolchain: nightly-2023-10-13-${{ matrix.job.target }}
+          targets: ${{ matrix.job.target }}
+          components: "rustfmt"
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          prefix-key: ${{ matrix.job.os }}-sciter
+
+      # === CORREÇÃO VCPKG MANUAL ===
+      # CORREÇÃO 2: Fixar o vcpkg no commit exato definido em VCPKG_COMMIT_ID
+      - name: Setup vcpkg
+        shell: bash
+        run: |
+          git clone https://github.com/microsoft/vcpkg.git
+          git -C vcpkg checkout ${{ env.ARMV7_VCPKG_COMMIT_ID }}
+          ./vcpkg/bootstrap-vcpkg.bat
+          echo "VCPKG_ROOT=$(pwd)/vcpkg" >> $GITHUB_ENV
+          echo "$(pwd)/vcpkg" >> $GITHUB_PATH
+      # === FIM CORREÇÃO VCPKG ===
+
+      - name: Install vcpkg dependencies
+        env:
+          VCPKG_DEFAULT_HOST_TRIPLET: ${{ matrix.job.vcpkg-triplet }}
+        shell: bash
+        run: |
+          if ! ./vcpkg/vcpkg install --triplet ${{ matrix.job.vcpkg-triplet }} --x-install-root="./vcpkg/installed"; then
+            exit 1
+          fi
+
+      - name: Build rustdesk
+        id: build
+        shell: bash
+        run: |
+          python3 res/inline-sciter.py
+          sed -i 's/branch = "dyn"/branch = "dyn_x86"/g' ./Cargo.toml
+          cargo build --features inline,vram --release --bins
+          mkdir -p ./Release
+          mv ./target/release/rustdesk.exe ./Release/rustdesk.exe
+          curl -LJ -o ./Release/sciter.dll https://github.com/c-smile/sciter-sdk/raw/master/bin.win/x32/sciter.dll
+          echo "output_folder=./Release" >> $GITHUB_OUTPUT
+
+      - name: Upload unsigned
+        if: env.UPLOAD_ARTIFACT == 'true'
+        uses: actions/upload-artifact@master
+        with:
+          name: rustdesk-unsigned-windows-${{ matrix.job.arch }}
+          path: Release
+
+      - name: Build self-extracted executable
+        shell: bash
+        run: |
+          sed -i '/dpiAware/d' res/manifest.xml
+          pushd ./libs/portable
+          pip3 install -r requirements.txt
+          python3 ./generate.py -f ../../Release/ -o . -e ../../Release/rustdesk.exe
+          popd
+          mkdir -p ./SignOutput
+          mv ./target/release/rustdesk-portable-packer.exe ./SignOutput/rustdesk-${{ env.VERSION }}-${{ matrix.job.arch }}-sciter.exe
+
+      - name: Publish Release
+        uses: softprops/action-gh-release@v1
+        if: env.UPLOAD_ARTIFACT == 'true'
+        with:
+          prerelease: true
+          tag_name: ${{ env.TAG_NAME }}
+          files: |
             ./SignOutput/rustdesk-*.exe
