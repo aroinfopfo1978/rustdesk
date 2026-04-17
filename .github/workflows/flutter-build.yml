@@ -130,16 +130,16 @@ jobs:
           prefix-key: ${{ matrix.job.os }}
 
       # === CORREÇÃO VCPKG MANUAL ===
-      # CORREÇÃO 2: Fixar o vcpkg no commit exato definido em VCPKG_COMMIT_ID
-      # para garantir compatibilidade com os overlay ports do rustdesk (aom, ffmpeg, etc.)
+      # CORREÇÃO 2: Fixar o vcpkg e TRADUZIR O CAMINHO PARA O COMPILADOR WINDOWS
       - name: Setup vcpkg
         shell: bash
         run: |
           git clone https://github.com/microsoft/vcpkg.git
           git -C vcpkg checkout ${{ env.VCPKG_COMMIT_ID }}
           ./vcpkg/bootstrap-vcpkg.bat
-          echo "VCPKG_ROOT=$(pwd)/vcpkg" >> $GITHUB_ENV
-          echo "$(pwd)/vcpkg" >> $GITHUB_PATH
+          VCPKG_WIN_PATH=$(cygpath -w "$(pwd)/vcpkg")
+          echo "VCPKG_ROOT=$VCPKG_WIN_PATH" >> $GITHUB_ENV
+          echo "$VCPKG_WIN_PATH" >> $GITHUB_PATH
       # === FIM CORREÇÃO VCPKG ===
 
       - name: Install vcpkg dependencies
@@ -281,15 +281,16 @@ jobs:
           prefix-key: ${{ matrix.job.os }}-sciter
 
       # === CORREÇÃO VCPKG MANUAL ===
-      # CORREÇÃO 2: Fixar o vcpkg no commit exato definido em VCPKG_COMMIT_ID
+      # CORREÇÃO 2: Fixar o vcpkg e TRADUZIR O CAMINHO PARA O COMPILADOR WINDOWS
       - name: Setup vcpkg
         shell: bash
         run: |
           git clone https://github.com/microsoft/vcpkg.git
           git -C vcpkg checkout ${{ env.ARMV7_VCPKG_COMMIT_ID }}
           ./vcpkg/bootstrap-vcpkg.bat
-          echo "VCPKG_ROOT=$(pwd)/vcpkg" >> $GITHUB_ENV
-          echo "$(pwd)/vcpkg" >> $GITHUB_PATH
+          VCPKG_WIN_PATH=$(cygpath -w "$(pwd)/vcpkg")
+          echo "VCPKG_ROOT=$VCPKG_WIN_PATH" >> $GITHUB_ENV
+          echo "$VCPKG_WIN_PATH" >> $GITHUB_PATH
       # === FIM CORREÇÃO VCPKG ===
 
       - name: Install vcpkg dependencies
