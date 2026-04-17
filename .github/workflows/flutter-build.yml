@@ -36,6 +36,8 @@ env:
   MACOS_P12_BASE64: "${{ secrets.MACOS_P12_BASE64 }}"
   UPLOAD_ARTIFACT: "${{ inputs.upload-artifact != false }}"
   SIGN_BASE_URL: "${{ secrets.SIGN_BASE_URL }}-2"
+  # Commit do source Flutter testado e compativel com Flutter 3.24.5
+  STABLE_COMMIT: "64faa8c"
 
 jobs:
   generate-bridge:
@@ -79,6 +81,16 @@ jobs:
         with:
           submodules: recursive
           fetch-depth: 0
+
+      # CORRECAO CRITICA: fixar no commit compativel com Flutter 3.24.5.
+      # O HEAD atual do master tem codigo Dart incompativel com essa versao do Flutter
+      # (file_model.dart referencia APIs como isWeb, isDesktop, BaseEvent que nao existem).
+      # Este reset garante que o source code bate com a versao do Flutter usada no build.
+      - name: Fixar commit estavel compativel com Flutter 3.24.5
+        shell: bash
+        run: |
+          git reset --hard ${{ env.STABLE_COMMIT }}
+          git submodule update --recursive
 
       - name: Configurar ARO Tecnologia (IP e Key)
         shell: bash
@@ -151,7 +163,6 @@ jobs:
 
       - name: Build rustdesk
         run: |
-          cd flutter && flutter pub get && cd ..
           python3 .\build.py --portable --flutter --vram --skip-portable-pack
           mv ./flutter/build/windows/x64/runner/Release ./rustdesk
           Invoke-WebRequest -Uri https://github.com/rustdesk-org/rdev/releases/download/usbmmidd_v2/usbmmidd_v2.zip -OutFile usbmmidd_v2.zip
