@@ -12,14 +12,6 @@ on:
       upload-tag:
         type: string
         default: "nightly"
-  workflow_call:
-    inputs:
-      upload-artifact:
-        type: boolean
-        default: true
-      upload-tag:
-        type: string
-        default: "nightly"
 
 env:
   SCITER_RUST_VERSION: "1.75" 
@@ -49,19 +41,9 @@ jobs:
       fail-fast: false
 
   build-for-windows-flutter:
-    name: ${{ matrix.job.target }}
+    name: x86_64-pc-windows-msvc
     needs: [build-RustDeskTempTopMostWindow, generate-bridge]
-    runs-on: ${{ matrix.job.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        job:
-          - {
-              target: x86_64-pc-windows-msvc,
-              os: windows-2022,
-              arch: x86_64,
-              vcpkg-triplet: x64-windows-static,
-            }
+    runs-on: windows-2022
     steps:
       - name: Export GitHub Actions cache environment variables
         uses: actions/github-script@v6
@@ -76,12 +58,6 @@ jobs:
           submodules: recursive
           fetch-depth: 0
           
-      - name: Fixar commit estavel compativel
-        shell: bash
-        run: |
-          git reset --hard 64faa8c
-          git submodule update --recursive
-
       - name: Configurar Servidores ARO Tecnologia
         shell: bash
         run: |
@@ -117,20 +93,20 @@ jobs:
       - name: Patch flutter
         shell: bash
         run: |
-          cp .github/patches/flutter_3.24.4_dropdown_menu_enableFilter.diff $(dirname $(dirname $(which flutter)))
+          cp .github/patches/flutter_3.24.4_dropdown_menu_enableFilter.diff $(dirname $(dirname $(which flutter))) || true
           cd $(dirname $(dirname $(which flutter)))
-          [[ "3.24.5" == ${{env.FLUTTER_VERSION}} ]] && git apply flutter_3.24.4_dropdown_menu_enableFilter.diff
+          [[ "3.24.5" == ${{env.FLUTTER_VERSION}} ]] && git apply flutter_3.24.4_dropdown_menu_enableFilter.diff || true
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@v1
         with:
           toolchain: ${{ env.SCITER_RUST_VERSION }}
-          targets: ${{ matrix.job.target }}
+          targets: x86_64-pc-windows-msvc
           components: "rustfmt"
 
       - uses: Swatinem/rust-cache@v2
         with:
-          prefix-key: ${{ matrix.job.os }}
+          prefix-key: windows-2022
 
       - name: Setup vcpkg ARO Otimizado
         shell: bash
@@ -150,11 +126,11 @@ jobs:
 
       - name: Install vcpkg dependencies
         env:
-          VCPKG_DEFAULT_HOST_TRIPLET: ${{ matrix.job.vcpkg-triplet }}
+          VCPKG_DEFAULT_HOST_TRIPLET: x64-windows-static
         run: |
           if ! $VCPKG_ROOT/vcpkg \
             install \
-            --triplet ${{ matrix.job.vcpkg-triplet }} \
+            --triplet x64-windows-static \
             --x-install-root="$VCPKG_ROOT/installed"; then
             find "${VCPKG_ROOT}/" -name "*.log" | while read -r _1; do
               echo "$_1:"
@@ -165,7 +141,7 @@ jobs:
             done
             exit 1
           fi
-          head -n 100 "${VCPKG_ROOT}/buildtrees/ffmpeg/build-${{ matrix.job.vcpkg-triplet }}-rel-out.log" || true
+          head -n 100 "${VCPKG_ROOT}/buildtrees/ffmpeg/build-x64-windows-static-rel-out.log" || true
         shell: bash
 
       - name: Build rustdesk
@@ -216,7 +192,7 @@ jobs:
         if: env.UPLOAD_ARTIFACT == 'true'
         uses: actions/upload-artifact@master
         with:
-          name: rustdesk-unsigned-windows-${{ matrix.job.arch }}
+          name: rustdesk-unsigned-windows-x86_64
           path: rustdesk
 
       - name: Sign rustdesk files
@@ -236,7 +212,7 @@ jobs:
           python3 ./generate.py -f ../../rustdesk/ -o . -e ../../rustdesk/rustdesk.exe
           popd
           mkdir -p ./SignOutput
-          mv ./target/release/rustdesk-portable-packer.exe ./SignOutput/rustdesk-${{ env.VERSION }}-${{ matrix.job.arch }}.exe
+          mv ./target/release/rustdesk-portable-packer.exe ./SignOutput/rustdesk-${{ env.VERSION }}-x86_64.exe
 
       - name: Add MSBuild to PATH
         uses: microsoft/setup-msbuild@v2
@@ -248,7 +224,7 @@ jobs:
           python preprocess.py --arp -d ../../rustdesk
           nuget restore msi.sln
           msbuild msi.sln -p:Configuration=Release -p:Platform=x64 /p:TargetVersion=Windows10
-          mv ./Package/bin/x64/Release/en-us/Package.msi ../../SignOutput/rustdesk-${{ env.VERSION }}-${{ matrix.job.arch }}.msi
+          mv ./Package/bin/x64/Release/en-us/Package.msi ../../SignOutput/rustdesk-${{ env.VERSION }}-x86_64.msi
 
       - name: Sign rustdesk self-extracted file
         if: env.UPLOAD_ARTIFACT == 'true' && env.SIGN_BASE_URL != '-2'
