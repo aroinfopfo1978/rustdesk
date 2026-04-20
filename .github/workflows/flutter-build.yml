@@ -77,22 +77,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: bridge-artifact
-          path: bridge_temp
-
-      - name: Garantir que a Ponte (TODOS os arquivos) vai para o lugar certo
-        shell: bash
-        run: |
-          echo "Movendo todos os arquivos Rust (.rs) para src/"
-          mkdir -p src
-          find bridge_temp -name "*.rs" -exec cp {} src/ \;
-          
-          echo "Movendo todos os arquivos Dart (.dart) para flutter/lib/"
-          mkdir -p flutter/lib
-          find bridge_temp -name "*.dart" -exec cp {} flutter/lib/ \;
-          
-          echo "Verificando se os arquivos estão nos lugares certos:"
-          ls -la src/ | grep bridge
-          ls -la flutter/lib/ | grep bridge
+          path: .
 
       - name: Install LLVM and Clang
         uses: KyleMayes/install-llvm-action@v1
