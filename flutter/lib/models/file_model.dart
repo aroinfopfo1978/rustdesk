@@ -13,7 +13,6 @@ import 'package:flutter_hbb/web/dummy.dart'
 import '../consts.dart';
 import 'model.dart';
 import 'platform_model.dart';
-import 'package:flutter_hbb/common.dart' show isWeb, isWindows, isWebOnWindows, translate, bind, gFFI, isMobile;
 
 enum SortBy {
   name,
