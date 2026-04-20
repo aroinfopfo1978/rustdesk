@@ -74,10 +74,10 @@ jobs:
           sed -i "s#API_SERVER = .*#// API_SERVER removido - BetterDesk#g" libs/hbb_common/src/config.rs
 
       - name: Restore bridge files
-        uses: actions/download-artifact@master
+        uses: actions/download-artifact@v4
         with:
-          name: bridge-artifact
-          path: ./
+          name: bridge
+          path: .
 
       - name: Install LLVM and Clang
         uses: KyleMayes/install-llvm-action@v1
@@ -155,6 +155,8 @@ jobs:
       - name: Build rustdesk
         run: |
           cd flutter
+          if (Test-Path .dart_tool) { Remove-Item -Recurse -Force .dart_tool }
+          flutter clean
           flutter pub get
           cd ..
           python3 .\build.py --portable --hwcodec --flutter --vram --skip-portable-pack
@@ -190,7 +192,7 @@ jobs:
           if [ "$runner_res" == "" ]; then echo "Runner.res: not found"; else cp $runner_res ./libs/portable/Runner.res; fi
 
       - name: Download RustDeskTempTopMostWindow artifacts
-        uses: actions/download-artifact@master
+        uses: actions/download-artifact@v4
         if: ${{ inputs.upload-artifact }}
         with:
           name: topmostwindow-artifacts
@@ -198,7 +200,7 @@ jobs:
 
       - name: Upload unsigned
         if: env.UPLOAD_ARTIFACT == 'true'
-        uses: actions/upload-artifact@master
+        uses: actions/upload-artifact@v4
         with:
           name: rustdesk-unsigned-windows-x86_64
           path: rustdesk
