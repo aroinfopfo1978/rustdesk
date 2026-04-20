@@ -1,4 +1,4 @@
-name: Build the flutter version of the RustDesk (Windows Only)
+name: Build the flutter version of the RustDesk
 
 on:
   push:
@@ -24,8 +24,14 @@ on:
 env:
   SCITER_RUST_VERSION: "1.75" 
   RUST_VERSION: "1.75" 
+  MAC_RUST_VERSION: "1.81" 
+  CARGO_NDK_VERSION: "3.1.2"
+  SCITER_ARMV7_CMAKE_VERSION: "3.29.7"
+  SCITER_NASM_DEBVERSION: "2.15.05-1"
   LLVM_VERSION: "15.0.6"
   FLUTTER_VERSION: "3.24.5"
+  ANDROID_FLUTTER_VERSION: "3.24.5"
+  FLUTTER_ELINUX_VERSION: "3.16.9"
   TAG_NAME: "${{ inputs.upload-tag || 'nightly' }}"
   VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
   VCPKG_COMMIT_ID: "120deac3062162151622ca4860575a33844ba10b"
@@ -77,7 +83,22 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: bridge-artifact
-          path: .
+          path: bridge_temp
+
+      - name: Distribuir arquivos da Ponte (Definitivo)
+        shell: bash
+        run: |
+          echo "Copiando arquivos Rust (.rs) para src/ ..."
+          cp bridge_temp/bridge_generated*.rs src/ 2>/dev/null || true
+          cp bridge_temp/src/bridge_generated*.rs src/ 2>/dev/null || true
+          
+          echo "Copiando arquivos Dart (.dart) para flutter/lib/ ..."
+          cp bridge_temp/generated_bridge*.dart flutter/lib/ 2>/dev/null || true
+          cp bridge_temp/flutter/lib/generated_bridge*.dart flutter/lib/ 2>/dev/null || true
+          
+          echo "Verificando se os arquivos chegaram nos lugares certos:"
+          ls -la src/ | grep bridge || true
+          ls -la flutter/lib/ | grep bridge || true
 
       - name: Install LLVM and Clang
         uses: KyleMayes/install-llvm-action@v1
