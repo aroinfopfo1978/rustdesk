@@ -74,10 +74,33 @@ jobs:
           sed -i "s#API_SERVER = .*#// API_SERVER removido - BetterDesk#g" libs/hbb_common/src/config.rs
 
       - name: Restore bridge files
-        uses: actions/download-artifact@master
+        uses: actions/download-artifact@v4
         with:
-          name: bridge-artifact
-          path: ./
+          name: bridge
+          path: .
+
+      - name: Patch Dart Code (FIX COPILOT/FLUTTER ERRORS)
+        shell: pwsh
+        run: |
+          $loginFile = "flutter/lib/common/widgets/login.dart"
+          if (Test-Path $loginFile) {
+             $content = Get-Content $loginFile -Raw
+             $content = $content -replace "import 'package:flutter_hbb/models/user_model.dart';", "import 'package:flutter_hbb/models/user_model.dart';`nimport 'package:flutter_hbb/utils/http_service.dart';"
+             Set-Content $loginFile -Value $content
+          }
+
+          $fileModel = "flutter/lib/models/file_model.dart"
+          if (Test-Path $fileModel) {
+             $content = Get-Content $fileModel -Raw
+             $content = $content -replace "import 'platform_model.dart';", "import 'platform_model.dart';`nimport 'package:flutter_hbb/utils/http_service.dart';"
+             # Fix constructor error: Add required base parameters
+             $content = $content -replace "class _FileDialogEvent extends BaseEvent<FileDialogType, Map<String, dynamic>> {", "class _FileDialogEvent extends BaseEvent<FileDialogType, Map<String, dynamic>> {"
+             $content = $content -replace "_FileDialogEvent\(this.fileModel, super.type, super.data\);", "_FileDialogEvent(this.fileModel, FileDialogType type, Map<String, dynamic> data) : super(type, data);"
+             # Remove onEventsClear which doesn't exist in base class anymore
+             $content = $content -replace "@override`r`n  Future<void> onEventsClear\(\) {`r`n    _overrideConfirm = null;`r`n    _skip = false;`r`n    return super.onEventsClear\(\);`r`n  }", ""
+             $content = $content -replace "@override`n  Future<void> onEventsClear\(\) {`n    _overrideConfirm = null;`n    _skip = false;`n    return super.onEventsClear\(\);`n  }", ""
+             Set-Content $fileModel -Value $content
+          }
 
       - name: Install LLVM and Clang
         uses: KyleMayes/install-llvm-action@v1
@@ -192,7 +215,7 @@ jobs:
           if [ "$runner_res" == "" ]; then echo "Runner.res: not found"; else cp $runner_res ./libs/portable/Runner.res; fi
 
       - name: Download RustDeskTempTopMostWindow artifacts
-        uses: actions/download-artifact@master
+        uses: actions/download-artifact@v4
         if: ${{ inputs.upload-artifact }}
         with:
           name: topmostwindow-artifacts
@@ -200,7 +223,7 @@ jobs:
 
       - name: Upload unsigned
         if: env.UPLOAD_ARTIFACT == 'true'
-        uses: actions/upload-artifact@master
+        uses: actions/upload-artifact@v4
         with:
           name: rustdesk-unsigned-windows-x86_64
           path: rustdesk
