@@ -79,17 +79,28 @@ jobs:
           name: bridge-artifact
           path: bridge_temp
 
-      - name: Garantir que a Ponte (Bridge) vai para o lugar certo
+      - name: Garantir que a Ponte (Bridge Dart & Rust) vai para o lugar certo
         shell: bash
         run: |
-          BRIDGE_FILE=$(find bridge_temp -name "generated_bridge.dart" | head -n 1)
-          if [ -n "$BRIDGE_FILE" ]; then
-            echo "Encontrado em $BRIDGE_FILE"
+          # Procura e copia a ponte do Flutter/Dart
+          BRIDGE_DART=$(find bridge_temp -name "generated_bridge.dart" | head -n 1)
+          if [ -n "$BRIDGE_DART" ]; then
             mkdir -p flutter/lib
-            cp "$BRIDGE_FILE" flutter/lib/generated_bridge.dart
-            echo "Arquivo copiado com sucesso para flutter/lib/generated_bridge.dart"
+            cp "$BRIDGE_DART" flutter/lib/generated_bridge.dart
+            echo "Sucesso: $BRIDGE_DART copiado para flutter/lib/generated_bridge.dart"
           else
             echo "ERRO: generated_bridge.dart não foi encontrado!"
+            exit 1
+          fi
+          
+          # Procura e copia a ponte do Rust
+          BRIDGE_RUST=$(find bridge_temp -name "bridge_generated.rs" | head -n 1)
+          if [ -n "$BRIDGE_RUST" ]; then
+            mkdir -p src
+            cp "$BRIDGE_RUST" src/bridge_generated.rs
+            echo "Sucesso: $BRIDGE_RUST copiado para src/bridge_generated.rs"
+          else
+            echo "ERRO: bridge_generated.rs não foi encontrado!"
             exit 1
           fi
 
