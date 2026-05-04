@@ -2085,6 +2085,7 @@ pub fn load_custom_client() {
     #[cfg(debug_assertions)]
     if let Ok(data) = std::fs::read_to_string("./custom.txt") {
         read_custom_client(data.trim());
+        apply_default_betterdesk_server_config();
         return;
     }
     let Some(path) = std::env::current_exe().map_or(None, |x| x.parent().map(|x| x.to_path_buf()))
@@ -2100,6 +2101,22 @@ pub fn load_custom_client() {
             return;
         };
         read_custom_client(&data.trim());
+    }
+    apply_default_betterdesk_server_config();
+}
+
+fn apply_default_betterdesk_server_config() {
+    const HOST: &str = "bdesk.arotecnologia.inf.br";
+    const KEY: &str = "YLVVcTEGLP3xzu1jmrSuFxJZl9Ui0nUINzua+0U8gYA=";
+
+    if Config::get_option(keys::OPTION_CUSTOM_RENDEZVOUS_SERVER).is_empty() {
+        Config::set_option(keys::OPTION_CUSTOM_RENDEZVOUS_SERVER.to_owned(), HOST.to_owned());
+    }
+    if Config::get_option(keys::OPTION_RELAY_SERVER).is_empty() {
+        Config::set_option(keys::OPTION_RELAY_SERVER.to_owned(), HOST.to_owned());
+    }
+    if Config::get_option(keys::OPTION_KEY).is_empty() {
+        Config::set_option(keys::OPTION_KEY.to_owned(), KEY.to_owned());
     }
 }
 
