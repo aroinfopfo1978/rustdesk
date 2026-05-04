@@ -36,7 +36,7 @@ env:
   VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
   VCPKG_COMMIT_ID: "120deac3062162151622ca4860575a33844ba10b"
   VERSION: "1.4.6"
-  UPLOAD_ARTIFACT: "${{ inputs.upload-artifact != false }}"
+  UPLOAD_ARTIFACT: "${{ github.event_name == 'push' || inputs.upload-artifact != false }}"
   SIGN_BASE_URL: "${{ secrets.SIGN_BASE_URL }}-2"
 
 permissions:
@@ -49,7 +49,7 @@ jobs:
   build-RustDeskTempTopMostWindow:
     uses: ./.github/workflows/third-party-RustDeskTempTopMostWindow.yml
     with:
-      upload-artifact: ${{ inputs.upload-artifact != false }}
+      upload-artifact: ${{ github.event_name == 'push' || inputs.upload-artifact != false }}
       target: windows-2022
       configuration: Release
       platform: x64
@@ -211,7 +211,7 @@ jobs:
 
       - name: Download RustDeskTempTopMostWindow artifacts
         uses: actions/download-artifact@v4
-        if: ${{ inputs.upload-artifact }}
+        if: env.UPLOAD_ARTIFACT == 'true'
         with:
           name: topmostwindow-artifacts
           path: "./rustdesk"
