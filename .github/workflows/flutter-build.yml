@@ -176,6 +176,9 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           $log = Join-Path $env:GITHUB_WORKSPACE 'build-windows.log'
+          $buildOk = $false
+
+          New-Item -ItemType File -Path $log -Force | Out-Null
 
           function Invoke-Logged([scriptblock]$Script, [string]$Name) {
             Write-Host ">>> $Name"
@@ -219,7 +222,7 @@ jobs:
               }
             } catch { Write-Host "Ignore the printer driver error." }
 
-            'build_ok=true' | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+            $buildOk = $true
           } catch {
             Write-Host "Build failed: $($_.Exception.Message)"
             if (Test-Path $log) {
@@ -228,9 +231,10 @@ jobs:
             } else {
               Write-Host "::error::build-windows.log not found"
             }
-            'build_ok=false' | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
-            exit 0
           }
+          
+          Add-Content -Path $env:GITHUB_OUTPUT -Value ("build_ok=" + $(if ($buildOk) { "true" } else { "false" }))
+          exit 0
 
       - name: Upload windows build log
         if: always()
@@ -238,6 +242,7 @@ jobs:
         with:
           name: aro-nexus-build-log-windows-x86_64
           path: build-windows.log
+          if-no-files-found: ignore
 
       - name: Fail if build failed
         if: always()
