@@ -304,41 +304,49 @@ jobs:
 
           New-Item -ItemType File -Path $log -Force | Out-Null
 
-          function Invoke-Logged([scriptblock]$Script, [string]$Name) {
-            Write-Host ">>> $Name"
-            & $Script 2>&1 | Tee-Object -FilePath $log -Append
-            if ($LASTEXITCODE -ne 0) {
-              throw "$Name failed with exit code $LASTEXITCODE"
-            }
-          }
+          Start-Transcript -Path $log -Append | Out-Null
 
           try {
+            Write-Host "python:"
+            python --version
+            Write-Host "pip:"
+            python -m pip --version
+
             $manifestPath = Join-Path $env:GITHUB_WORKSPACE 'res/manifest.xml'
             if (Test-Path $manifestPath) {
-              Invoke-Logged { (Get-Content $manifestPath) | Where-Object { $_ -notmatch 'dpiAware' } | Set-Content -Path $manifestPath -Encoding utf8 } 'remove dpiAware from manifest.xml'
+              Write-Host "Update manifest.xml (remove dpiAware)"
+              (Get-Content $manifestPath) | Where-Object { $_ -notmatch 'dpiAware' } | Set-Content -Path $manifestPath -Encoding utf8
             }
 
             $rustdeskDir = Join-Path $env:GITHUB_WORKSPACE 'rustdesk'
             $exeOld = Join-Path $rustdeskDir 'rustdesk.exe'
             $exeNew = Join-Path $rustdeskDir 'aronexus.exe'
             if ((Test-Path $exeOld) -and (-not (Test-Path $exeNew))) {
-              Invoke-Logged { Move-Item -Force $exeOld $exeNew } 'rename rustdesk.exe -> aronexus.exe'
+              Write-Host "Rename rustdesk.exe -> aronexus.exe"
+              Move-Item -Force $exeOld $exeNew
             }
 
             Push-Location (Join-Path $env:GITHUB_WORKSPACE 'libs/portable')
-            Invoke-Logged { python -m pip install -r requirements.txt } 'pip install portable requirements'
-            Invoke-Logged { python ./generate.py -f $rustdeskDir/ -o . -e $exeNew } 'generate portable packer'
+            Write-Host "pip install -r requirements.txt"
+            python -m pip install -r requirements.txt
+            Write-Host "python generate.py"
+            python ./generate.py -f $rustdeskDir/ -o . -e $exeNew
             Pop-Location
 
             $signOutput = Join-Path $env:GITHUB_WORKSPACE 'SignOutput'
             New-Item -ItemType Directory -Path $signOutput -Force | Out-Null
-            Invoke-Logged { Move-Item -Force (Join-Path $env:GITHUB_WORKSPACE 'target/release/rustdesk-portable-packer.exe') (Join-Path $signOutput \"aro-nexus-$($env:VERSION)-x86_64.exe\") } 'move portable packer output'
+            Write-Host "Move rustdesk-portable-packer.exe -> SignOutput"
+            Move-Item -Force (Join-Path $env:GITHUB_WORKSPACE 'target/release/rustdesk-portable-packer.exe') (Join-Path $signOutput \"aro-nexus-$($env:VERSION)-x86_64.exe\")
 
             $portableOk = $true
           } catch {
             Write-Host "Portable pack failed: $($_.Exception.Message)"
-            Write-Host "Last 200 lines of portable-pack.log:"
-            Get-Content $log -Tail 200 | ForEach-Object { Write-Host "::error::$_" }
+            Write-Host "Directory listings:"
+            Get-ChildItem -Force (Join-Path $env:GITHUB_WORKSPACE 'rustdesk') | Select-Object Name,Length | Format-Table -AutoSize
+            Get-ChildItem -Force (Join-Path $env:GITHUB_WORKSPACE 'target/release') -ErrorAction SilentlyContinue | Select-Object Name,Length | Format-Table -AutoSize
+            throw
+          } finally {
+            try { Stop-Transcript | Out-Null } catch { }
           }
 
           $portableOkValue = if ($portableOk) { 'true' } else { 'false' }
