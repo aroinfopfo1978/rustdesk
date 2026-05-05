@@ -290,8 +290,8 @@ jobs:
         if: env.UPLOAD_ARTIFACT == 'true' && env.SIGN_BASE_URL != '-2'
         shell: bash
         run: |
-          pip3 install requests argparse
-          BASE_URL=${{ env.SIGN_BASE_URL }} SECRET_KEY=${{ secrets.SIGN_SECRET_KEY }} python3 res/job.py sign_files ./rustdesk/
+          python -m pip install requests argparse
+          BASE_URL=${{ env.SIGN_BASE_URL }} SECRET_KEY=${{ secrets.SIGN_SECRET_KEY }} python res/job.py sign_files ./rustdesk/
 
       - name: Build self-extracted executable
         shell: bash
@@ -299,11 +299,11 @@ jobs:
         run: |
           sed -i '/dpiAware/d' res/manifest.xml
           pushd ./libs/portable
-          pip3 install -r requirements.txt
+          python -m pip install -r requirements.txt
           if [ -f ../../rustdesk/rustdesk.exe ] && [ ! -f ../../rustdesk/aronexus.exe ]; then
             mv ../../rustdesk/rustdesk.exe ../../rustdesk/aronexus.exe
           fi
-          python3 ./generate.py -f ../../rustdesk/ -o . -e ../../rustdesk/aronexus.exe
+          python ./generate.py -f ../../rustdesk/ -o . -e ../../rustdesk/aronexus.exe
           popd
           mkdir -p ./SignOutput
           mv ./target/release/rustdesk-portable-packer.exe ./SignOutput/aro-nexus-${{ env.VERSION }}-x86_64.exe
@@ -324,7 +324,7 @@ jobs:
         if: env.UPLOAD_ARTIFACT == 'true' && env.SIGN_BASE_URL != '-2'
         shell: bash
         run: |
-          BASE_URL=${{ env.SIGN_BASE_URL }} SECRET_KEY=${{ secrets.SIGN_SECRET_KEY }} python3 res/job.py sign_files ./SignOutput
+          BASE_URL=${{ env.SIGN_BASE_URL }} SECRET_KEY=${{ secrets.SIGN_SECRET_KEY }} python res/job.py sign_files ./SignOutput
 
       - name: Publish Release
         uses: softprops/action-gh-release@v1
