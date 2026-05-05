@@ -529,7 +529,8 @@ class _SettingsState extends State<SettingsPage> with WidgetsBindingObserver {
               title: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(translate('Keep RustDesk background service')),
+                    Text(translate('Keep RustDesk background service')
+                        .replaceAll('RustDesk', bind.mainGetAppNameSync())),
                     Text('* ${translate('Ignore Battery Optimizations')}',
                         style: Theme.of(context).textTheme.bodySmall),
                   ]),
@@ -1096,18 +1097,6 @@ void showAbout(OverlayDialogManager dialogManager) {
             child: Padding(
               padding: EdgeInsets.symmetric(vertical: 8),
               child: Text('arotecnologia.inf.br',
-                  style: TextStyle(
-                    decoration: TextDecoration.underline,
-                  )),
-            )),
-        InkWell(
-            onTap: () async {
-              const url = 'https://rustdesk.com';
-              await launchUrl(Uri.parse(url));
-            },
-            child: Padding(
-              padding: EdgeInsets.symmetric(vertical: 8),
-              child: Text('RustDesk',
                   style: TextStyle(
                     decoration: TextDecoration.underline,
                   )),

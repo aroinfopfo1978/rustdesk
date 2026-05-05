@@ -3716,14 +3716,6 @@ Widget loadPowered(BuildContext context) {
         ),
       ),
       link('arotecnologia.inf.br', 'https://www.arotecnologia.inf.br/'),
-      Opacity(
-        opacity: 0.5,
-        child: Text(
-          ' · ',
-          style: style?.copyWith(decoration: TextDecoration.none),
-        ),
-      ),
-      link('RustDesk', 'https://rustdesk.com'),
     ],
   ).marginOnly(top: 6);
 }

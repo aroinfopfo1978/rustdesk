@@ -2407,14 +2407,6 @@ class _AboutState extends State<_About> {
                     translate('Website'),
                     style: linkStyle,
                   ).marginSymmetric(vertical: 4.0)),
-              InkWell(
-                  onTap: () {
-                    launchUrlString('https://rustdesk.com');
-                  },
-                  child: Text(
-                    'RustDesk',
-                    style: linkStyle,
-                  ).marginSymmetric(vertical: 4.0)),
               Container(
                 decoration: const BoxDecoration(color: Color(0xFF2c8cff)),
                 padding:
@@ -2427,7 +2419,7 @@ class _AboutState extends State<_About> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'ARO Nexus (ARO Tecnologia)\nBaseado no RustDesk\n$license',
+                            'ARO Nexus (ARO Tecnologia)\n$license',
                             style: const TextStyle(color: Colors.white),
                           ),
                           Text(
