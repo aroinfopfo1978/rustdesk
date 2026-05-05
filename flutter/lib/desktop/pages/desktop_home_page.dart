@@ -403,7 +403,7 @@ class _DesktopHomePageState extends State<DesktopHomePage>
                 Align(
                   alignment: Alignment.centerLeft,
                   child: Text(
-                    translate("Your Desktop"),
+                    'Suporte Remoto ARO Tecnologia',
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
                 ),
@@ -413,10 +413,28 @@ class _DesktopHomePageState extends State<DesktopHomePage>
             height: 10.0,
           ),
           if (!isOutgoingOnly)
-            Text(
-              translate("desk_tip"),
-              overflow: TextOverflow.clip,
-              style: Theme.of(context).textTheme.bodySmall,
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Acesse este computador com o ID e senha abaixo.',
+                  overflow: TextOverflow.clip,
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+                SizedBox(height: 6),
+                MouseRegion(
+                  cursor: SystemMouseCursors.click,
+                  child: GestureDetector(
+                    onTap: () =>
+                        launchUrl(Uri.parse('https://www.arotecnologia.inf.br/')),
+                    child: Text(
+                      'www.arotecnologia.inf.br',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          decoration: TextDecoration.underline, fontSize: 12),
+                    ),
+                  ),
+                ),
+              ],
             ),
           if (isOutgoingOnly)
             Text(
