@@ -296,30 +296,70 @@ jobs:
       - name: Build self-extracted executable
         shell: pwsh
         if: env.UPLOAD_ARTIFACT == 'true'
+        continue-on-error: true
         run: |
           $ErrorActionPreference = 'Stop'
+          $log = Join-Path $env:GITHUB_WORKSPACE 'portable-pack.log'
+          $portableOk = $false
 
-          $manifestPath = Join-Path $env:GITHUB_WORKSPACE 'res/manifest.xml'
-          if (Test-Path $manifestPath) {
-            $lines = Get-Content $manifestPath
-            $lines | Where-Object { $_ -notmatch 'dpiAware' } | Set-Content -Path $manifestPath -Encoding utf8
+          New-Item -ItemType File -Path $log -Force | Out-Null
+
+          function Invoke-Logged([scriptblock]$Script, [string]$Name) {
+            Write-Host ">>> $Name"
+            & $Script 2>&1 | Tee-Object -FilePath $log -Append
+            if ($LASTEXITCODE -ne 0) {
+              throw "$Name failed with exit code $LASTEXITCODE"
+            }
           }
 
-          $rustdeskDir = Join-Path $env:GITHUB_WORKSPACE 'rustdesk'
-          $exeOld = Join-Path $rustdeskDir 'rustdesk.exe'
-          $exeNew = Join-Path $rustdeskDir 'aronexus.exe'
-          if ((Test-Path $exeOld) -and (-not (Test-Path $exeNew))) {
-            Move-Item -Force $exeOld $exeNew
+          try {
+            $manifestPath = Join-Path $env:GITHUB_WORKSPACE 'res/manifest.xml'
+            if (Test-Path $manifestPath) {
+              Invoke-Logged { (Get-Content $manifestPath) | Where-Object { $_ -notmatch 'dpiAware' } | Set-Content -Path $manifestPath -Encoding utf8 } 'remove dpiAware from manifest.xml'
+            }
+
+            $rustdeskDir = Join-Path $env:GITHUB_WORKSPACE 'rustdesk'
+            $exeOld = Join-Path $rustdeskDir 'rustdesk.exe'
+            $exeNew = Join-Path $rustdeskDir 'aronexus.exe'
+            if ((Test-Path $exeOld) -and (-not (Test-Path $exeNew))) {
+              Invoke-Logged { Move-Item -Force $exeOld $exeNew } 'rename rustdesk.exe -> aronexus.exe'
+            }
+
+            Push-Location (Join-Path $env:GITHUB_WORKSPACE 'libs/portable')
+            Invoke-Logged { python -m pip install -r requirements.txt } 'pip install portable requirements'
+            Invoke-Logged { python ./generate.py -f $rustdeskDir/ -o . -e $exeNew } 'generate portable packer'
+            Pop-Location
+
+            $signOutput = Join-Path $env:GITHUB_WORKSPACE 'SignOutput'
+            New-Item -ItemType Directory -Path $signOutput -Force | Out-Null
+            Invoke-Logged { Move-Item -Force (Join-Path $env:GITHUB_WORKSPACE 'target/release/rustdesk-portable-packer.exe') (Join-Path $signOutput \"aro-nexus-$($env:VERSION)-x86_64.exe\") } 'move portable packer output'
+
+            $portableOk = $true
+          } catch {
+            Write-Host "Portable pack failed: $($_.Exception.Message)"
+            Write-Host "Last 200 lines of portable-pack.log:"
+            Get-Content $log -Tail 200 | ForEach-Object { Write-Host "::error::$_" }
           }
 
-          Push-Location (Join-Path $env:GITHUB_WORKSPACE 'libs/portable')
-          python -m pip install -r requirements.txt
-          python ./generate.py -f $rustdeskDir/ -o . -e $exeNew
-          Pop-Location
+          $portableOkValue = if ($portableOk) { 'true' } else { 'false' }
+          "PORTABLE_OK=$portableOkValue" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          Write-Host "PORTABLE_OK=$portableOkValue"
+          exit 0
 
-          $signOutput = Join-Path $env:GITHUB_WORKSPACE 'SignOutput'
-          New-Item -ItemType Directory -Path $signOutput -Force | Out-Null
-          Move-Item -Force (Join-Path $env:GITHUB_WORKSPACE 'target/release/rustdesk-portable-packer.exe') (Join-Path $signOutput \"aro-nexus-$($env:VERSION)-x86_64.exe\")
+      - name: Upload portable pack log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: aro-nexus-portable-pack-log-windows-x86_64
+          path: portable-pack.log
+          if-no-files-found: ignore
+
+      - name: Fail if portable pack failed
+        if: always()
+        shell: pwsh
+        run: |
+          Write-Host "PORTABLE_OK=$env:PORTABLE_OK"
+          if ("$env:PORTABLE_OK" -ne "true") { exit 1 }
 
       - name: Add MSBuild to PATH
         uses: microsoft/setup-msbuild@v2
