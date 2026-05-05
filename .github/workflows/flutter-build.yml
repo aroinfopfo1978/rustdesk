@@ -233,7 +233,16 @@ jobs:
             }
           }
           
-          Add-Content -Path $env:GITHUB_OUTPUT -Value ("build_ok=" + $(if ($buildOk) { "true" } else { "false" }))
+          $buildOkValue = if ($buildOk) { 'true' } else { 'false' }
+          "build_ok=$buildOkValue" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          Write-Host "build_ok=$buildOkValue"
+          try {
+            Write-Host "GITHUB_OUTPUT path: $env:GITHUB_OUTPUT"
+            if (Test-Path $env:GITHUB_OUTPUT) {
+              Write-Host "GITHUB_OUTPUT (tail):"
+              Get-Content $env:GITHUB_OUTPUT -Tail 5 | ForEach-Object { Write-Host $_ }
+            }
+          } catch { }
           exit 0
 
       - name: Upload windows build log
