@@ -335,8 +335,11 @@ jobs:
 
             $signOutput = Join-Path $env:GITHUB_WORKSPACE 'SignOutput'
             New-Item -ItemType Directory -Path $signOutput -Force | Out-Null
-            Write-Host "Move rustdesk-portable-packer.exe -> SignOutput"
-            Move-Item -Force (Join-Path $env:GITHUB_WORKSPACE 'target/release/rustdesk-portable-packer.exe') (Join-Path $signOutput \"aro-nexus-$($env:VERSION)-x86_64.exe\")
+            $packer1 = Join-Path $env:GITHUB_WORKSPACE 'target/release/rustdesk-portable-packer.exe'
+            $packer2 = Join-Path $env:GITHUB_WORKSPACE \"target/$($env:TARGET)/release/rustdesk-portable-packer.exe\"
+            $packer = if (Test-Path $packer1) { $packer1 } else { $packer2 }
+            Write-Host \"Move rustdesk-portable-packer.exe -> SignOutput ($packer)\"
+            Move-Item -Force $packer (Join-Path $signOutput \"aro-nexus-$($env:VERSION)-x86_64.exe\")
 
             $portableOk = $true
           } catch {
