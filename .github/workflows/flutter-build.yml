@@ -333,6 +333,13 @@ jobs:
             python ./generate.py -f $rustdeskDir/ -o . -e $exeNew
             Pop-Location
 
+            Write-Host "cargo build rustdesk-portable-packer"
+            $portableManifest = Join-Path $env:GITHUB_WORKSPACE 'libs/portable/Cargo.toml'
+            cargo build --release --manifest-path $portableManifest
+            if ($LASTEXITCODE -ne 0) {
+              throw "cargo build rustdesk-portable-packer failed with exit code $LASTEXITCODE"
+            }
+
             $signOutput = Join-Path $env:GITHUB_WORKSPACE 'SignOutput'
             New-Item -ItemType Directory -Path $signOutput -Force | Out-Null
             $packer1 = Join-Path $env:GITHUB_WORKSPACE 'target/release/rustdesk-portable-packer.exe'
