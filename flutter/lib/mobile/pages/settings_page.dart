@@ -35,7 +35,7 @@ class SettingsPage extends StatefulWidget implements PageShape {
   State<SettingsPage> createState() => _SettingsState();
 }
 
-const url = 'https://rustdesk.com/';
+const url = 'https://www.arotecnologia.inf.br/';
 
 enum KeepScreenOn {
   never,
@@ -952,7 +952,7 @@ class _SettingsState extends State<SettingsPage> with WidgetsBindingObserver {
                 title: Text(translate("Version: ") + version),
                 value: Padding(
                   padding: EdgeInsets.symmetric(vertical: 8),
-                  child: Text('rustdesk.com',
+                  child: Text('arotecnologia.inf.br',
                       style: TextStyle(
                         decoration: TextDecoration.underline,
                       )),
@@ -977,7 +977,7 @@ class _SettingsState extends State<SettingsPage> with WidgetsBindingObserver {
             SettingsTile(
               title: Text(translate("Privacy Statement")),
               onPressed: (context) =>
-                  launchUrlString('https://rustdesk.com/privacy.html'),
+                  launchUrlString('https://www.arotecnologia.inf.br/'),
               leading: Icon(Icons.privacy_tip),
             )
           ],
@@ -1085,17 +1085,29 @@ void showThemeSettings(OverlayDialogManager dialogManager) async {
 void showAbout(OverlayDialogManager dialogManager) {
   dialogManager.show((setState, close, context) {
     return CustomAlertDialog(
-      title: Text(translate('About RustDesk')),
+      title: Text('Sobre o ARO Nexus'),
       content: Wrap(direction: Axis.vertical, spacing: 12, children: [
         Text('Version: $version'),
         InkWell(
             onTap: () async {
-              const url = 'https://rustdesk.com/';
+              const url = 'https://www.arotecnologia.inf.br/';
               await launchUrl(Uri.parse(url));
             },
             child: Padding(
               padding: EdgeInsets.symmetric(vertical: 8),
-              child: Text('rustdesk.com',
+              child: Text('arotecnologia.inf.br',
+                  style: TextStyle(
+                    decoration: TextDecoration.underline,
+                  )),
+            )),
+        InkWell(
+            onTap: () async {
+              const url = 'https://rustdesk.com';
+              await launchUrl(Uri.parse(url));
+            },
+            child: Padding(
+              padding: EdgeInsets.symmetric(vertical: 8),
+              child: Text('RustDesk',
                   style: TextStyle(
                     decoration: TextDecoration.underline,
                   )),

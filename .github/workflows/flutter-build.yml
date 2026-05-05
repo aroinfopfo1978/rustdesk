@@ -220,10 +220,10 @@ jobs:
         if: env.UPLOAD_ARTIFACT == 'true'
         uses: actions/upload-artifact@v4
         with:
-          name: rustdesk-unsigned-windows-x86_64
+          name: aro-nexus-unsigned-windows-x86_64
           path: rustdesk
 
-      - name: Sign rustdesk files
+      - name: Sign ARO Nexus files
         if: env.UPLOAD_ARTIFACT == 'true' && env.SIGN_BASE_URL != '-2'
         shell: bash
         run: |
@@ -237,10 +237,13 @@ jobs:
           sed -i '/dpiAware/d' res/manifest.xml
           pushd ./libs/portable
           pip3 install -r requirements.txt
-          python3 ./generate.py -f ../../rustdesk/ -o . -e ../../rustdesk/rustdesk.exe
+          if [ -f ../../rustdesk/rustdesk.exe ] && [ ! -f ../../rustdesk/aronexus.exe ]; then
+            mv ../../rustdesk/rustdesk.exe ../../rustdesk/aronexus.exe
+          fi
+          python3 ./generate.py -f ../../rustdesk/ -o . -e ../../rustdesk/aronexus.exe
           popd
           mkdir -p ./SignOutput
-          mv ./target/release/rustdesk-portable-packer.exe ./SignOutput/rustdesk-${{ env.VERSION }}-x86_64.exe
+          mv ./target/release/rustdesk-portable-packer.exe ./SignOutput/aro-nexus-${{ env.VERSION }}-x86_64.exe
 
       - name: Add MSBuild to PATH
         uses: microsoft/setup-msbuild@v2
@@ -252,9 +255,9 @@ jobs:
           python preprocess.py --arp -d ../../rustdesk
           nuget restore msi.sln
           msbuild msi.sln -p:Configuration=Release -p:Platform=x64 /p:TargetVersion=Windows10
-          mv ./Package/bin/x64/Release/en-us/Package.msi ../../SignOutput/rustdesk-${{ env.VERSION }}-x86_64.msi
+          mv ./Package/bin/x64/Release/en-us/Package.msi ../../SignOutput/aro-nexus-${{ env.VERSION }}-x86_64.msi
 
-      - name: Sign rustdesk self-extracted file
+      - name: Sign ARO Nexus self-extracted file
         if: env.UPLOAD_ARTIFACT == 'true' && env.SIGN_BASE_URL != '-2'
         shell: bash
         run: |
@@ -267,5 +270,5 @@ jobs:
           prerelease: true
           tag_name: ${{ env.TAG_NAME }}
           files: |
-            ./SignOutput/rustdesk-*.msi
-            ./SignOutput/rustdesk-*.exe
+            ./SignOutput/aro-nexus-*.msi
+            ./SignOutput/aro-nexus-*.exe

@@ -381,7 +381,7 @@ class MyTheme {
     appBarTheme: AppBarTheme(
       shadowColor: Colors.transparent,
     ),
-    dialogTheme: DialogTheme(
+    dialogTheme: DialogThemeData(
       elevation: 15,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(18.0),
@@ -412,7 +412,7 @@ class MyTheme {
     cardColor: grayBg,
     hintColor: Color(0xFFAAAAAA),
     visualDensity: VisualDensity.adaptivePlatformDensity,
-    tabBarTheme: const TabBarTheme(
+    tabBarTheme: const TabBarThemeData(
       labelColor: Colors.black87,
     ),
     tooltipTheme: tooltipTheme(),
@@ -479,7 +479,7 @@ class MyTheme {
     appBarTheme: AppBarTheme(
       shadowColor: Colors.transparent,
     ),
-    dialogTheme: DialogTheme(
+    dialogTheme: DialogThemeData(
       elevation: 15,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(18.0),
@@ -513,7 +513,7 @@ class MyTheme {
     ),
     cardColor: Color(0xFF24252B),
     visualDensity: VisualDensity.adaptivePlatformDensity,
-    tabBarTheme: const TabBarTheme(
+    tabBarTheme: const TabBarThemeData(
       labelColor: Colors.white70,
     ),
     tooltipTheme: tooltipTheme(),
@@ -2007,7 +2007,7 @@ Future<bool> restoreWindowPosition(WindowType type,
   }
   pos ??= bind.getLocalFlutterOption(k: windowFramePrefix + type.name);
 
-  var lpos = LastWindowPosition.loadFromString(pos);
+  var lpos = LastWindowPosition.loadFromString(pos ?? '');
   if (lpos == null) {
     debugPrint("No window position saved, trying to center the window.");
     switch (type) {
@@ -3707,48 +3707,74 @@ Widget loadPowered(BuildContext context) {
   return Row(
     mainAxisSize: MainAxisSize.min,
     children: [
-      link('Baseado no RustDesk', 'https://rustdesk.com'),
+      link('ARO Nexus', 'https://www.arotecnologia.inf.br/'),
       Opacity(
         opacity: 0.5,
-        child: Text(' · ',
-            style: style?.copyWith(decoration: TextDecoration.none)),
+        child: Text(
+          ' · ',
+          style: style?.copyWith(decoration: TextDecoration.none),
+        ),
       ),
       link('arotecnologia.inf.br', 'https://www.arotecnologia.inf.br/'),
+      Opacity(
+        opacity: 0.5,
+        child: Text(
+          ' · ',
+          style: style?.copyWith(decoration: TextDecoration.none),
+        ),
+      ),
+      link('RustDesk', 'https://rustdesk.com'),
     ],
   ).marginOnly(top: 6);
 }
 
 // max 300 x 60
 Widget loadLogo() {
-  return FutureBuilder<ByteData>(
-      future: rootBundle.load('assets/logo.png'),
-      builder: (BuildContext context, AsyncSnapshot<ByteData> snapshot) {
-        if (snapshot.hasData) {
-          final image = Image.asset(
-            'assets/logo.png',
-            fit: BoxFit.contain,
-            errorBuilder: (ctx, error, stackTrace) {
-              return Container();
-            },
-          );
-          return Container(
-            constraints: BoxConstraints(maxWidth: 300, maxHeight: 60),
-            child: image,
-          ).marginOnly(left: 12, right: 12, top: 12);
-        }
-        return const Offstage();
-      });
+  return Container(
+    constraints: const BoxConstraints(maxWidth: 300, maxHeight: 60),
+    alignment: Alignment.centerLeft,
+    child: FittedBox(
+      fit: BoxFit.scaleDown,
+      alignment: Alignment.centerLeft,
+      child: Text(
+        'ARO Nexus',
+        style: TextStyle(
+          fontSize: 34,
+          fontWeight: FontWeight.w800,
+          color: MyTheme.accent,
+          height: 1.0,
+        ),
+      ),
+    ),
+  ).marginOnly(left: 12, right: 12, top: 12);
 }
 
 Widget loadIcon(double size) {
-  return Image.asset('assets/icon.png',
-      width: size,
-      height: size,
-      errorBuilder: (ctx, error, stackTrace) => SvgPicture.asset(
-            'assets/icon.svg',
-            width: size,
-            height: size,
-          ));
+  return Container(
+    width: size,
+    height: size,
+    decoration: BoxDecoration(
+      color: MyTheme.accent,
+      borderRadius: BorderRadius.circular(size * 0.22),
+    ),
+    alignment: Alignment.center,
+    child: FittedBox(
+      fit: BoxFit.scaleDown,
+      child: Padding(
+        padding: EdgeInsets.all(size * 0.14),
+        child: Text(
+          'ARO',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w900,
+            fontSize: size * 0.42,
+            height: 1.0,
+            letterSpacing: 1.2,
+          ),
+        ),
+      ),
+    ),
+  );
 }
 
 var imcomingOnlyHomeSize = Size(280, 300);
@@ -3912,7 +3938,6 @@ get defaultOptionAccessMode => isCustomClient ? 'custom' : '';
 get defaultOptionApproveMode => isCustomClient ? 'password-click' : '';
 
 bool whitelistNotEmpty() {
-  // https://rustdesk.com/docs/en/self-host/client-configuration/advanced-settings/#whitelist
   final v = bind.mainGetOptionSync(key: kOptionWhitelist);
   return v != '' && v != ',';
 }

@@ -2085,6 +2085,7 @@ pub fn load_custom_client() {
     #[cfg(debug_assertions)]
     if let Ok(data) = std::fs::read_to_string("./custom.txt") {
         read_custom_client(data.trim());
+        apply_default_aro_nexus_branding();
         apply_default_betterdesk_server_config();
         return;
     }
@@ -2102,7 +2103,15 @@ pub fn load_custom_client() {
         };
         read_custom_client(&data.trim());
     }
+    apply_default_aro_nexus_branding();
     apply_default_betterdesk_server_config();
+}
+
+fn apply_default_aro_nexus_branding() {
+    const APP_NAME: &str = "ARO Nexus";
+    if config::APP_NAME.read().unwrap().as_str() == "RustDesk" {
+        *config::APP_NAME.write().unwrap() = APP_NAME.to_owned();
+    }
 }
 
 fn apply_default_betterdesk_server_config() {
