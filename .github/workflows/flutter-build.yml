@@ -336,10 +336,18 @@ jobs:
             $signOutput = Join-Path $env:GITHUB_WORKSPACE 'SignOutput'
             New-Item -ItemType Directory -Path $signOutput -Force | Out-Null
             $packer1 = Join-Path $env:GITHUB_WORKSPACE 'target/release/rustdesk-portable-packer.exe'
-            $packer2 = Join-Path $env:GITHUB_WORKSPACE \"target/$($env:TARGET)/release/rustdesk-portable-packer.exe\"
-            $packer = if (Test-Path $packer1) { $packer1 } else { $packer2 }
-            Write-Host \"Move rustdesk-portable-packer.exe -> SignOutput ($packer)\"
-            Move-Item -Force $packer (Join-Path $signOutput \"aro-nexus-$($env:VERSION)-x86_64.exe\")
+            $packer2 = if ($env:TARGET) {
+              Join-Path $env:GITHUB_WORKSPACE ("target/{0}/release/rustdesk-portable-packer.exe" -f $env:TARGET)
+            } else {
+              $null
+            }
+            $packerCandidates = @($packer1, $packer2) | Where-Object { $_ -and (Test-Path $_) }
+            if (-not $packerCandidates) {
+              throw "rustdesk-portable-packer.exe not found in target/release or target/$($env:TARGET)/release"
+            }
+            $packer = $packerCandidates[0]
+            Write-Host ("Move rustdesk-portable-packer.exe -> SignOutput ({0})" -f $packer)
+            Move-Item -Force $packer (Join-Path $signOutput ("aro-nexus-{0}-x86_64.exe" -f $env:VERSION))
 
             $portableOk = $true
           } catch {
@@ -347,6 +355,9 @@ jobs:
             Write-Host "Directory listings:"
             Get-ChildItem -Force (Join-Path $env:GITHUB_WORKSPACE 'rustdesk') | Select-Object Name,Length | Format-Table -AutoSize
             Get-ChildItem -Force (Join-Path $env:GITHUB_WORKSPACE 'target/release') -ErrorAction SilentlyContinue | Select-Object Name,Length | Format-Table -AutoSize
+            if ($env:TARGET) {
+              Get-ChildItem -Force (Join-Path $env:GITHUB_WORKSPACE ("target/{0}/release" -f $env:TARGET)) -ErrorAction SilentlyContinue | Select-Object Name,Length | Format-Table -AutoSize
+            }
             throw
           } finally {
             try { Stop-Transcript | Out-Null } catch { }
