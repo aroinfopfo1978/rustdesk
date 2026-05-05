@@ -235,6 +235,7 @@ jobs:
           
           $buildOkValue = if ($buildOk) { 'true' } else { 'false' }
           "build_ok=$buildOkValue" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          "BUILD_OK=$buildOkValue" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
           Write-Host "build_ok=$buildOkValue"
           try {
             Write-Host "GITHUB_OUTPUT path: $env:GITHUB_OUTPUT"
@@ -257,7 +258,8 @@ jobs:
         if: always()
         shell: pwsh
         run: |
-          if ("${{ steps.build_rustdesk.outputs.build_ok }}" -ne "true") { exit 1 }
+          Write-Host "BUILD_OK=$env:BUILD_OK"
+          if ("$env:BUILD_OK" -ne "true") { exit 1 }
 
       - name: find Runner.res
         continue-on-error: true
