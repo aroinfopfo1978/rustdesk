@@ -294,19 +294,32 @@ jobs:
           BASE_URL=${{ env.SIGN_BASE_URL }} SECRET_KEY=${{ secrets.SIGN_SECRET_KEY }} python res/job.py sign_files ./rustdesk/
 
       - name: Build self-extracted executable
-        shell: bash
+        shell: pwsh
         if: env.UPLOAD_ARTIFACT == 'true'
         run: |
-          sed -i '/dpiAware/d' res/manifest.xml
-          pushd ./libs/portable
+          $ErrorActionPreference = 'Stop'
+
+          $manifestPath = Join-Path $env:GITHUB_WORKSPACE 'res/manifest.xml'
+          if (Test-Path $manifestPath) {
+            $lines = Get-Content $manifestPath
+            $lines | Where-Object { $_ -notmatch 'dpiAware' } | Set-Content -Path $manifestPath -Encoding utf8
+          }
+
+          $rustdeskDir = Join-Path $env:GITHUB_WORKSPACE 'rustdesk'
+          $exeOld = Join-Path $rustdeskDir 'rustdesk.exe'
+          $exeNew = Join-Path $rustdeskDir 'aronexus.exe'
+          if ((Test-Path $exeOld) -and (-not (Test-Path $exeNew))) {
+            Move-Item -Force $exeOld $exeNew
+          }
+
+          Push-Location (Join-Path $env:GITHUB_WORKSPACE 'libs/portable')
           python -m pip install -r requirements.txt
-          if [ -f ../../rustdesk/rustdesk.exe ] && [ ! -f ../../rustdesk/aronexus.exe ]; then
-            mv ../../rustdesk/rustdesk.exe ../../rustdesk/aronexus.exe
-          fi
-          python ./generate.py -f ../../rustdesk/ -o . -e ../../rustdesk/aronexus.exe
-          popd
-          mkdir -p ./SignOutput
-          mv ./target/release/rustdesk-portable-packer.exe ./SignOutput/aro-nexus-${{ env.VERSION }}-x86_64.exe
+          python ./generate.py -f $rustdeskDir/ -o . -e $exeNew
+          Pop-Location
+
+          $signOutput = Join-Path $env:GITHUB_WORKSPACE 'SignOutput'
+          New-Item -ItemType Directory -Path $signOutput -Force | Out-Null
+          Move-Item -Force (Join-Path $env:GITHUB_WORKSPACE 'target/release/rustdesk-portable-packer.exe') (Join-Path $signOutput \"aro-nexus-$($env:VERSION)-x86_64.exe\")
 
       - name: Add MSBuild to PATH
         uses: microsoft/setup-msbuild@v2
