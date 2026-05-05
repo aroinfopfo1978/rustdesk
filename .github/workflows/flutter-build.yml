@@ -21,6 +21,10 @@ on:
         type: string
         default: "nightly"
 
+concurrency:
+  group: flutter-build-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   SCITER_RUST_VERSION: "1.75" 
   RUST_VERSION: "1.75" 
