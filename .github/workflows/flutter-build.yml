@@ -170,37 +170,80 @@ jobs:
         shell: bash
 
       - name: Build rustdesk
+        id: build_rustdesk
+        continue-on-error: true
         shell: pwsh
         run: |
-          cd flutter
-          if (Test-Path .dart_tool) { Remove-Item -Recurse -Force .dart_tool }
-          flutter clean
-          flutter pub get
-          cd ..
-          python3 .\build.py --portable --hwcodec --flutter --vram --skip-portable-pack
-          mv ./flutter/build/windows/x64/runner/Release ./rustdesk
-          Invoke-WebRequest -Uri https://github.com/rustdesk-org/rdev/releases/download/usbmmidd_v2/usbmmidd_v2.zip -OutFile usbmmidd_v2.zip
-          Expand-Archive usbmmidd_v2.zip -DestinationPath .
-          Remove-Item -Path usbmmidd_v2\Win32 -Recurse
-          Remove-Item -Path "usbmmidd_v2\deviceinstaller64.exe", "usbmmidd_v2\deviceinstaller.exe", "usbmmidd_v2\usbmmidd.bat"
-          mv -Force .\usbmmidd_v2 ./rustdesk
+          $ErrorActionPreference = 'Stop'
+          $log = Join-Path $env:GITHUB_WORKSPACE 'build-windows.log'
+
+          function Invoke-Logged([scriptblock]$Script, [string]$Name) {
+            Write-Host ">>> $Name"
+            & $Script 2>&1 | Tee-Object -FilePath $log -Append
+            if ($LASTEXITCODE -ne 0) {
+              throw "$Name failed with exit code $LASTEXITCODE"
+            }
+          }
 
           try {
-            Invoke-WebRequest -Uri https://github.com/rustdesk/hbb_common/releases/download/driver/rustdesk_printer_driver_v4-1.4.zip -OutFile rustdesk_printer_driver_v4-1.4.zip
-            Invoke-WebRequest -Uri https://github.com/rustdesk/hbb_common/releases/download/driver/printer_driver_adapter.zip -OutFile printer_driver_adapter.zip
-            Invoke-WebRequest -Uri https://github.com/rustdesk/hbb_common/releases/download/driver/sha256sums -OutFile sha256sums
-            $checksum_driver = (Select-String -Path .\sha256sums -Pattern '^([a-fA-F0-9]{64}) \*rustdesk_printer_driver_v4-1.4\.zip$').Matches.Groups[1].Value
-            $downloadsum_driver = Get-FileHash -Path rustdesk_printer_driver_v4-1.4.zip -Algorithm SHA256
-            $checksum_adapter = (Select-String -Path .\sha256sums -Pattern '^([a-fA-F0-9]{64}) \*printer_driver_adapter\.zip$').Matches.Groups[1].Value
-            $downloadsum_adapter = Get-FileHash -Path printer_driver_adapter.zip -Algorithm SHA256
-            if ($checksum_driver -eq $downloadsum_driver.Hash -and $checksum_adapter -eq $downloadsum_adapter.Hash) {
-                Expand-Archive rustdesk_printer_driver_v4-1.4.zip -DestinationPath .
-                mkdir ./rustdesk/drivers
-                mv -Force .\rustdesk_printer_driver_v4-1.4 ./rustdesk/drivers/RustDeskPrinterDriver
-                Expand-Archive printer_driver_adapter.zip -DestinationPath .
-                mv -Force .\printer_driver_adapter.dll ./rustdesk
+            Push-Location flutter
+            if (Test-Path .dart_tool) { Remove-Item -Recurse -Force .dart_tool }
+            Invoke-Logged { flutter clean } 'flutter clean'
+            Invoke-Logged { flutter pub get } 'flutter pub get'
+            Pop-Location
+
+            Invoke-Logged { python .\build.py --portable --hwcodec --flutter --vram --skip-portable-pack } 'python build.py (flutter/windows)'
+
+            Invoke-Logged { mv ./flutter/build/windows/x64/runner/Release ./rustdesk } 'move windows runner output'
+
+            Invoke-Logged { Invoke-WebRequest -Uri https://github.com/rustdesk-org/rdev/releases/download/usbmmidd_v2/usbmmidd_v2.zip -OutFile usbmmidd_v2.zip } 'download usbmmidd_v2'
+            Invoke-Logged { Expand-Archive usbmmidd_v2.zip -DestinationPath . } 'extract usbmmidd_v2'
+            Invoke-Logged { Remove-Item -Path usbmmidd_v2\Win32 -Recurse } 'remove usbmmidd_v2\\Win32'
+            Invoke-Logged { Remove-Item -Path "usbmmidd_v2\deviceinstaller64.exe", "usbmmidd_v2\deviceinstaller.exe", "usbmmidd_v2\usbmmidd.bat" } 'remove usbmmidd_v2 tools'
+            Invoke-Logged { mv -Force .\usbmmidd_v2 ./rustdesk } 'move usbmmidd_v2 into output'
+
+            try {
+              Invoke-WebRequest -Uri https://github.com/rustdesk/hbb_common/releases/download/driver/rustdesk_printer_driver_v4-1.4.zip -OutFile rustdesk_printer_driver_v4-1.4.zip
+              Invoke-WebRequest -Uri https://github.com/rustdesk/hbb_common/releases/download/driver/printer_driver_adapter.zip -OutFile printer_driver_adapter.zip
+              Invoke-WebRequest -Uri https://github.com/rustdesk/hbb_common/releases/download/driver/sha256sums -OutFile sha256sums
+              $checksum_driver = (Select-String -Path .\sha256sums -Pattern '^([a-fA-F0-9]{64}) \*rustdesk_printer_driver_v4-1.4\.zip$').Matches.Groups[1].Value
+              $downloadsum_driver = Get-FileHash -Path rustdesk_printer_driver_v4-1.4.zip -Algorithm SHA256
+              $checksum_adapter = (Select-String -Path .\sha256sums -Pattern '^([a-fA-F0-9]{64}) \*printer_driver_adapter\.zip$').Matches.Groups[1].Value
+              $downloadsum_adapter = Get-FileHash -Path printer_driver_adapter.zip -Algorithm SHA256
+              if ($checksum_driver -eq $downloadsum_driver.Hash -and $checksum_adapter -eq $downloadsum_adapter.Hash) {
+                  Expand-Archive rustdesk_printer_driver_v4-1.4.zip -DestinationPath .
+                  mkdir ./rustdesk/drivers
+                  mv -Force .\rustdesk_printer_driver_v4-1.4 ./rustdesk/drivers/RustDeskPrinterDriver
+                  Expand-Archive printer_driver_adapter.zip -DestinationPath .
+                  mv -Force .\printer_driver_adapter.dll ./rustdesk
+              }
+            } catch { Write-Host "Ignore the printer driver error." }
+
+            'build_ok=true' | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          } catch {
+            Write-Host "Build failed: $($_.Exception.Message)"
+            if (Test-Path $log) {
+              Write-Host "Last 200 lines of build-windows.log:"
+              Get-Content $log -Tail 200 | ForEach-Object { Write-Host "::error::$_" }
+            } else {
+              Write-Host "::error::build-windows.log not found"
             }
-          } catch { Write-Host "Ignore the printer driver error." }
+            'build_ok=false' | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+            exit 0
+          }
+
+      - name: Upload windows build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: aro-nexus-build-log-windows-x86_64
+          path: build-windows.log
+
+      - name: Fail if build failed
+        if: always()
+        shell: pwsh
+        run: |
+          if ("${{ steps.build_rustdesk.outputs.build_ok }}" -ne "true") { exit 1 }
 
       - name: find Runner.res
         continue-on-error: true
