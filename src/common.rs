@@ -2087,6 +2087,7 @@ pub fn load_custom_client() {
         read_custom_client(data.trim());
         apply_default_aro_nexus_branding();
         apply_default_betterdesk_server_config();
+        apply_default_aro_profile();
         return;
     }
     let Some(path) = std::env::current_exe().map_or(None, |x| x.parent().map(|x| x.to_path_buf()))
@@ -2105,6 +2106,7 @@ pub fn load_custom_client() {
     }
     apply_default_aro_nexus_branding();
     apply_default_betterdesk_server_config();
+    apply_default_aro_profile();
 }
 
 fn apply_default_aro_nexus_branding() {
@@ -2127,6 +2129,50 @@ fn apply_default_betterdesk_server_config() {
     if Config::get_option(keys::OPTION_KEY).is_empty() {
         Config::set_option(keys::OPTION_KEY.to_owned(), KEY.to_owned());
     }
+}
+
+fn apply_default_aro_profile() {
+    let profile = std::env::var("ARO_PROFILE").unwrap_or_default().to_lowercase();
+    let exe_name = std::env::current_exe()
+        .ok()
+        .and_then(|p| p.file_name().map(|x| x.to_string_lossy().to_string()))
+        .unwrap_or_default()
+        .to_lowercase();
+
+    let is_host = profile == "host" || exe_name.contains("host");
+    if !is_host {
+        return;
+    }
+
+    config::HARD_SETTINGS
+        .write()
+        .unwrap()
+        .insert("conn-type".to_owned(), "incoming".to_owned());
+    config::HARD_SETTINGS
+        .write()
+        .unwrap()
+        .insert("disable-settings".to_owned(), "Y".to_owned());
+    config::HARD_SETTINGS
+        .write()
+        .unwrap()
+        .insert("disable-installation".to_owned(), "Y".to_owned());
+    config::HARD_SETTINGS
+        .write()
+        .unwrap()
+        .insert("disable-ab".to_owned(), "Y".to_owned());
+    config::HARD_SETTINGS
+        .write()
+        .unwrap()
+        .insert("disable-account".to_owned(), "Y".to_owned());
+
+    config::BUILTIN_SETTINGS
+        .write()
+        .unwrap()
+        .insert(keys::OPTION_HIDE_HELP_CARDS.to_owned(), "Y".to_owned());
+    config::BUILTIN_SETTINGS
+        .write()
+        .unwrap()
+        .insert(keys::OPTION_HIDE_TRAY.to_owned(), "Y".to_owned());
 }
 
 fn read_custom_client_advanced_settings(
