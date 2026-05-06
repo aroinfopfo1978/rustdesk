@@ -347,9 +347,15 @@ jobs:
               (Get-Content $manifestPath) | Where-Object { $_ -notmatch 'dpiAware' } | Set-Content -Path $manifestPath -Encoding utf8
             }
 
-            $rustdeskDir = Join-Path $env:GITHUB_WORKSPACE $env:DIST_DIR
-            $exeOld = Join-Path $rustdeskDir 'rustdesk.exe'
-            $exeNew = Join-Path $rustdeskDir 'ARO Nexus.exe'
+            if ([string]::IsNullOrWhiteSpace($env:DIST_DIR)) {
+              throw "DIST_DIR is empty"
+            }
+            $distDir = Join-Path $env:GITHUB_WORKSPACE $env:DIST_DIR
+            if (-not (Test-Path $distDir)) {
+              throw "DIST_DIR path not found: $distDir"
+            }
+            $exeOld = Join-Path $distDir 'rustdesk.exe'
+            $exeNew = Join-Path $distDir 'ARO Nexus.exe'
             if ((Test-Path $exeOld) -and (-not (Test-Path $exeNew))) {
               Write-Host "Rename rustdesk.exe -> ARO Nexus.exe"
               Move-Item -Force $exeOld $exeNew
@@ -360,27 +366,32 @@ jobs:
             Invoke-Logged { rustup toolchain install $env:MAC_RUST_VERSION } "rustup toolchain install $env:MAC_RUST_VERSION"
             Invoke-Logged { rustup override set $env:MAC_RUST_VERSION } "rustup override set $env:MAC_RUST_VERSION"
             Invoke-Logged { python -m pip install -r requirements.txt } 'pip install -r requirements.txt'
-            Invoke-Logged { python ./generate.py -f $rustdeskDir -o . -e $exeName } 'python generate.py'
+            Invoke-Logged { python ./generate.py -f $distDir -o . -e $exeName } 'python generate.py'
             Pop-Location
 
             $signOutput = Join-Path $env:GITHUB_WORKSPACE 'SignOutput'
             New-Item -ItemType Directory -Path $signOutput -Force | Out-Null
-            $packer1 = Join-Path $env:GITHUB_WORKSPACE 'libs/portable/target/release/rustdesk-portable-packer.exe'
-            $packer2 = Join-Path $env:GITHUB_WORKSPACE 'libs/portable/target/x86_64-pc-windows-msvc/release/rustdesk-portable-packer.exe'
-            $packer3 = Join-Path $env:GITHUB_WORKSPACE 'target/release/rustdesk-portable-packer.exe'
-            $packer4 = Join-Path $env:GITHUB_WORKSPACE 'target/x86_64-pc-windows-msvc/release/rustdesk-portable-packer.exe'
-            $packerCandidates = @($packer1, $packer2, $packer3, $packer4) | Where-Object { Test-Path $_ }
-            if (-not $packerCandidates) {
-              throw "rustdesk-portable-packer.exe not found (checked libs/portable/target and target)"
+            $packerCandidates = @()
+            $portableTarget = Join-Path $env:GITHUB_WORKSPACE 'libs/portable/target'
+            if (Test-Path $portableTarget) {
+              $packerCandidates += Get-ChildItem -Recurse -File -Path $portableTarget -Filter 'rustdesk-portable-packer.exe' -ErrorAction SilentlyContinue
             }
-            $packer = $packerCandidates[0]
-            Write-Host ("Move rustdesk-portable-packer.exe -> SignOutput ({0})" -f $packer)
-            Move-Item -Force $packer (Join-Path $signOutput ("aro-nexus-{0}-x86_64.exe" -f $env:VERSION))
+            $rootTarget = Join-Path $env:GITHUB_WORKSPACE 'target'
+            if (Test-Path $rootTarget) {
+              $packerCandidates += Get-ChildItem -Recurse -File -Path $rootTarget -Filter 'rustdesk-portable-packer.exe' -ErrorAction SilentlyContinue
+            }
+            $packer = $packerCandidates | Select-Object -First 1
+            if (-not $packer) {
+              throw "rustdesk-portable-packer.exe not found (searched libs/portable/target and target)"
+            }
+            Write-Host ("Move rustdesk-portable-packer.exe -> SignOutput ({0})" -f $packer.FullName)
+            Move-Item -Force $packer.FullName (Join-Path $signOutput ("aro-nexus-{0}-x86_64.exe" -f $env:VERSION))
 
             $portableOk = $true
           } catch {
             "Portable pack failed: $($_.Exception.Message)" | Tee-Object -FilePath $log -Append | ForEach-Object { Write-Host $_ }
             Write-Host "Directory listings:"
+            try { Write-Host "DIST_DIR=$env:DIST_DIR" } catch { }
             try { Get-ChildItem -Force (Join-Path $env:GITHUB_WORKSPACE $env:DIST_DIR) -ErrorAction SilentlyContinue | Select-Object Name,Length | Format-Table -AutoSize } catch { }
             try { Get-ChildItem -Force (Join-Path $env:GITHUB_WORKSPACE 'libs/portable/target/release') -ErrorAction SilentlyContinue | Select-Object Name,Length | Format-Table -AutoSize } catch { }
             try { Get-ChildItem -Force (Join-Path $env:GITHUB_WORKSPACE 'libs/portable/target/x86_64-pc-windows-msvc/release') -ErrorAction SilentlyContinue | Select-Object Name,Length | Format-Table -AutoSize } catch { }
