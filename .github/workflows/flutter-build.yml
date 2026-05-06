@@ -356,11 +356,17 @@ jobs:
             }
             $exeOld = Join-Path $distDir 'rustdesk.exe'
             $exeNew = Join-Path $distDir 'ARO Nexus.exe'
-            if ((Test-Path $exeOld) -and (-not (Test-Path $exeNew))) {
-              Write-Host "Rename rustdesk.exe -> ARO Nexus.exe"
-              Move-Item -Force $exeOld $exeNew
+            if (Test-Path $exeOld) {
+              if (-not (Test-Path $exeNew)) {
+                Write-Host "Copy rustdesk.exe -> ARO Nexus.exe (keep rustdesk.exe for MSI)"
+                Copy-Item -Force $exeOld $exeNew
+              }
+              $exeName = Split-Path -Leaf $exeNew
+            } elseif (Test-Path $exeNew) {
+              $exeName = Split-Path -Leaf $exeNew
+            } else {
+              throw "Neither rustdesk.exe nor ARO Nexus.exe found in DIST_DIR"
             }
-            $exeName = Split-Path -Leaf $exeNew
 
             Push-Location (Join-Path $env:GITHUB_WORKSPACE 'libs/portable')
             Invoke-Logged { rustup toolchain install $env:MAC_RUST_VERSION } "rustup toolchain install $env:MAC_RUST_VERSION"
@@ -429,12 +435,35 @@ jobs:
 
       - name: Build msi
         if: env.UPLOAD_ARTIFACT == 'true'
+        shell: pwsh
         run: |
-          pushd ./res/msi
-          python preprocess.py --arp -d ../../${{ env.DIST_DIR }}
-          nuget restore msi.sln
-          msbuild msi.sln -p:Configuration=Release -p:Platform=x64 /p:TargetVersion=Windows10
-          mv ./Package/bin/x64/Release/en-us/Package.msi ../../SignOutput/aro-nexus-${{ env.VERSION }}-x86_64.msi
+          $ErrorActionPreference = 'Stop'
+          $log = Join-Path $env:GITHUB_WORKSPACE 'msi-build.log'
+          New-Item -ItemType File -Path $log -Force | Out-Null
+          Push-Location (Join-Path $env:GITHUB_WORKSPACE 'res/msi')
+          try {
+            "DIST_DIR=$env:DIST_DIR" | Tee-Object -FilePath $log -Append | ForEach-Object { Write-Host $_ }
+            & python preprocess.py --arp -d ("../../{0}" -f $env:DIST_DIR) 2>&1 | Tee-Object -FilePath $log -Append
+            if ($LASTEXITCODE -ne 0) { throw "preprocess.py failed with exit code $LASTEXITCODE" }
+            & nuget restore msi.sln 2>&1 | Tee-Object -FilePath $log -Append
+            if ($LASTEXITCODE -ne 0) { throw "nuget restore failed with exit code $LASTEXITCODE" }
+            & msbuild msi.sln -p:Configuration=Release -p:Platform=x64 /p:TargetVersion=Windows10 2>&1 | Tee-Object -FilePath $log -Append
+            if ($LASTEXITCODE -ne 0) { throw "msbuild failed with exit code $LASTEXITCODE" }
+            $srcMsi = Join-Path $PWD 'Package/bin/x64/Release/en-us/Package.msi'
+            $dstMsi = Join-Path $env:GITHUB_WORKSPACE ("SignOutput/aro-nexus-{0}-x86_64.msi" -f $env:VERSION)
+            if (-not (Test-Path $srcMsi)) { throw "Package.msi not found: $srcMsi" }
+            Move-Item -Force $srcMsi $dstMsi
+          } finally {
+            Pop-Location
+          }
+
+      - name: Upload msi build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: aro-nexus-msi-build-log-windows-x86_64
+          path: msi-build.log
+          if-no-files-found: ignore
 
       - name: Sign ARO Nexus self-extracted file
         if: env.UPLOAD_ARTIFACT == 'true' && env.SIGN_BASE_URL != '-2'

@@ -251,16 +251,16 @@ class MyTheme {
   MyTheme._();
 
   static const Color grayBg = Color(0xFFEFEFF2);
-  static const Color accent = Color(0xFF0071FF);
-  static const Color accent50 = Color(0x770071FF);
-  static const Color accent80 = Color(0xAA0071FF);
-  static const Color canvasColor = Color(0xFF212121);
+  static const Color accent = Color(0xFFF26522);
+  static const Color accent50 = Color(0x77F26522);
+  static const Color accent80 = Color(0xAAF26522);
+  static const Color canvasColor = Color(0xFF2B2B2B);
   static const Color border = Color(0xFFCCCCCC);
-  static const Color idColor = Color(0xFF00B6F0);
+  static const Color idColor = accent;
   static const Color darkGray = Color.fromARGB(255, 148, 148, 148);
   static const Color cmIdColor = Color(0xFF21790B);
   static const Color dark = Colors.black87;
-  static const Color button = Color(0xFF2C8CFF);
+  static const Color button = accent;
   static const Color hoverBorder = Color(0xFF999999);
 
   // ListTile
@@ -3722,51 +3722,56 @@ Widget loadPowered(BuildContext context) {
 
 // max 300 x 60
 Widget loadLogo() {
+  final isDark = Get.isDarkMode;
+  final iconAsset = isDark ? 'assets/icon-dark.svg' : 'assets/icon.svg';
+  final nexusColor = isDark ? Colors.white : const Color(0xFF2B2B2B);
   return Container(
     constraints: const BoxConstraints(maxWidth: 300, maxHeight: 60),
     alignment: Alignment.centerLeft,
     child: FittedBox(
       fit: BoxFit.scaleDown,
       alignment: Alignment.centerLeft,
-      child: Text(
-        'ARO Nexus',
-        style: TextStyle(
-          fontSize: 34,
-          fontWeight: FontWeight.w800,
-          color: MyTheme.accent,
-          height: 1.0,
-        ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SvgPicture.asset(iconAsset, width: 44, height: 44),
+          const SizedBox(width: 10),
+          RichText(
+            text: TextSpan(
+              children: [
+                TextSpan(
+                  text: 'ARO ',
+                  style: TextStyle(
+                    fontSize: 34,
+                    fontWeight: FontWeight.w800,
+                    color: MyTheme.accent,
+                    height: 1.0,
+                    letterSpacing: -0.6,
+                  ),
+                ),
+                TextSpan(
+                  text: 'NEXUS',
+                  style: TextStyle(
+                    fontSize: 34,
+                    fontWeight: FontWeight.w900,
+                    color: nexusColor,
+                    height: 1.0,
+                    letterSpacing: -0.6,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     ),
   ).marginOnly(left: 12, right: 12, top: 12);
 }
 
 Widget loadIcon(double size) {
-  return Container(
-    width: size,
-    height: size,
-    decoration: BoxDecoration(
-      color: MyTheme.accent,
-      borderRadius: BorderRadius.circular(size * 0.22),
-    ),
-    alignment: Alignment.center,
-    child: FittedBox(
-      fit: BoxFit.scaleDown,
-      child: Padding(
-        padding: EdgeInsets.all(size * 0.14),
-        child: Text(
-          'ARO',
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.w900,
-            fontSize: size * 0.42,
-            height: 1.0,
-            letterSpacing: 1.2,
-          ),
-        ),
-      ),
-    ),
-  );
+  final isDark = Get.isDarkMode;
+  final iconAsset = isDark ? 'assets/icon-dark.svg' : 'assets/icon.svg';
+  return SvgPicture.asset(iconAsset, width: size, height: size);
 }
 
 var imcomingOnlyHomeSize = Size(280, 300);

@@ -1,0 +1,22 @@
+<?xml version="1.0" standalone="no"?>
+<svg xmlns:xlink="http://www.w3.org/1999/xlink" id="icone-escuro" viewBox="0 0 120 120" width="120" height="120" xmlns="http://www.w3.org/2000/svg"><defs><style>@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@700;900&amp;display=swap'); text { font-family: 'Poppins', sans-serif; }</style></defs>
+                            <!-- Hexágono Base (Branco no dark mode) -->
+                            <polygon points="60,15 99,37.5 99,82.5 60,105 21,82.5 21,37.5" fill="none" stroke="#ffffff" stroke-width="10" stroke-linejoin="round"/>
+                            
+                            <!-- Conexões do Nexus -->
+                            <path d="M 60 60 L 60 15 M 60 60 L 99 82.5 M 60 60 L 21 82.5" fill="none" stroke="#f26522" stroke-width="10" stroke-linecap="round"/>
+                            
+                            <!-- Nós Externos Laranjas -->
+                            <circle cx="60" cy="15" r="9" fill="#f26522"/>
+                            <circle cx="99" cy="82.5" r="9" fill="#f26522"/>
+                            <circle cx="21" cy="82.5" r="9" fill="#f26522"/>
+                            
+                            <!-- Nós Secundários (Brancos no dark mode) -->
+                            <circle cx="99" cy="37.5" r="6" fill="#ffffff"/>
+                            <circle cx="60" cy="105" r="6" fill="#ffffff"/>
+                            <circle cx="21" cy="37.5" r="6" fill="#ffffff"/>
+          
+                            <!-- O Núcleo Central (Nexus) -->
+                            <circle cx="60" cy="60" r="16" fill="#f26522"/>
+                            <circle cx="60" cy="60" r="6" fill="#2b2b2b"/>
+                        </svg>
