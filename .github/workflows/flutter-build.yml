@@ -481,7 +481,7 @@ for out in targets:
             if ($LASTEXITCODE -ne 0) { throw "preprocess.py failed with exit code $LASTEXITCODE" }
             & nuget restore msi.sln 2>&1 | Tee-Object -FilePath $log -Append
             if ($LASTEXITCODE -ne 0) { throw "nuget restore failed with exit code $LASTEXITCODE" }
-            & msbuild msi.sln -p:Configuration=Release -p:Platform=x64 /p:TargetVersion=Windows10 2>&1 | Tee-Object -FilePath $log -Append
+            & msbuild msi.sln /restore -p:Configuration=Release -p:Platform=x64 /p:TargetVersion=Windows10 2>&1 | Tee-Object -FilePath $log -Append
             if ($LASTEXITCODE -ne 0) { throw "msbuild failed with exit code $LASTEXITCODE" }
             $releaseDir = Join-Path $PWD 'Package/bin/x64/Release'
             if (-not (Test-Path $releaseDir)) { throw "MSI output folder not found: $releaseDir" }
