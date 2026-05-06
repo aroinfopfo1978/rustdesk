@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ARO Nexus | Assets para RustDesk</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Fontes e Ícones -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800;900&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        heading: ['Poppins', 'sans-serif'],
+                    },
+                    colors: {
+                        aro: { orange: '#f26522', dark: '#2b2b2b', gray: '#475569', light: '#f8fafc' }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { background-color: #f1f5f9; }
+        .pattern-bg {
+            background-image: radial-gradient(#cbd5e1 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+        .btn-loading i { animation: spin 1s linear infinite; }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="font-sans text-aro-dark antialiased min-h-screen flex flex-col">
+
+    <!-- HEADER -->
+    <header class="bg-aro-dark text-white py-8 relative overflow-hidden shadow-xl">
+        <div class="absolute inset-0 opacity-10">
+            <svg class="h-full w-full" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                    <pattern id="pattern-boxes" x="0" y="0" width="40" height="40" patternUnits="userSpaceOnUse">
+                        <path d="M0 40L40 0H20L0 20M40 40V20L20 40" stroke="white" stroke-width="2" fill="none"/>
+                    </pattern>
+                </defs>
+                <rect width="100%" height="100%" fill="url(#pattern-boxes)"></rect>
+            </svg>
+        </div>
+        <div class="max-w-7xl mx-auto px-6 relative z-10 flex justify-between items-center">
+            <div>
+                <h1 class="text-3xl font-heading font-black tracking-tight mb-1">ARO <span class="text-aro-orange">NEXUS</span></h1>
+                <p class="text-base text-slate-300 font-light">Compilador de Assets para RustDesk</p>
+            </div>
+            <div class="hidden md:block text-right">
+                <p class="text-xs text-slate-400 font-mono">TARGET: RUSTDESK CUSTOM BUILD</p>
+                <p class="text-xs text-aro-orange font-bold font-mono">v1.0.0-NEXUS</p>
+            </div>
+        </div>
+    </header>
+
+    <!-- CONTEÚDO PRINCIPAL -->
+    <main class="flex-1 max-w-7xl mx-auto px-6 py-10 w-full grid grid-cols-1 lg:grid-cols-12 gap-8">
+        
+        <!-- COLUNA ESQUERDA: Exportador Focado no RustDesk -->
+        <div class="lg:col-span-4 space-y-6">
+            
+            <div class="bg-white p-6 rounded-2xl shadow-lg border-2 border-aro-orange relative overflow-hidden">
+                <div class="absolute top-0 right-0 bg-aro-orange text-white text-[10px] font-bold px-3 py-1 rounded-bl-lg tracking-widest">RUSTDESK ASSETS</div>
+                <h3 class="text-xl font-heading font-bold mb-2 text-aro-dark">Painel de Exportação</h3>
+                <p class="text-slate-500 mb-6 text-xs leading-relaxed">
+                    Estes são os arquivos exatos, nos tamanhos corretos, que você precisará substituir na pasta <code class="bg-slate-100 px-1 rounded text-aro-orange">/res</code> do código-fonte do RustDesk.
+                </p>
+                
+                <div class="space-y-3">
+                    <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 mt-4">1. Ícones do Sistema</h4>
+                    
+                    <!-- Botão icon.ico -->
+                    <button onclick="exportAsset('master-icon', 'ico', 256, 256, 'icon.ico')" class="w-full bg-slate-50 hover:bg-slate-100 text-aro-dark p-3 rounded-xl text-sm font-medium transition flex items-center justify-between border border-slate-200 group">
+                        <div class="flex items-center"><i class="fa-brands fa-windows text-blue-500 mr-3 text-lg w-5 text-center"></i> 
+                            <div class="text-left"><p>icon.ico</p><p class="text-[10px] text-slate-400">Windows Executable (256x256)</p></div>
+                        </div>
+                        <i class="fa-solid fa-download text-slate-300 group-hover:text-aro-orange"></i>
+                    </button>
+
+                    <!-- Botão icon.png -->
+                    <button onclick="exportAsset('master-icon', 'png', 256, 256, 'icon.png')" class="w-full bg-slate-50 hover:bg-slate-100 text-aro-dark p-3 rounded-xl text-sm font-medium transition flex items-center justify-between border border-slate-200 group">
+                        <div class="flex items-center"><i class="fa-brands fa-linux text-yellow-500 mr-3 text-lg w-5 text-center"></i> 
+                            <div class="text-left"><p>icon.png</p><p class="text-[10px] text-slate-400">Linux / Tray / Geral (256x256)</p></div>
+                        </div>
+                        <i class="fa-solid fa-download text-slate-300 group-hover:text-aro-orange"></i>
+                    </button>
+
+                    <!-- Botão icon.svg -->
+                    <button onclick="exportVector('master-icon', 'icon.svg')" class="w-full bg-slate-50 hover:bg-slate-100 text-aro-dark p-3 rounded-xl text-sm font-medium transition flex items-center justify-between border border-slate-200 group">
+                        <div class="flex items-center"><i class="fa-solid fa-bezier-curve text-purple-500 mr-3 text-lg w-5 text-center"></i> 
+                            <div class="text-left"><p>icon.svg</p><p class="text-[10px] text-slate-400">UI Vector Icon (Escalável)</p></div>
+                        </div>
+                        <i class="fa-solid fa-download text-slate-300 group-hover:text-aro-orange"></i>
+                    </button>
+
+                    <!-- Botão icon_512.png -->
+                    <button onclick="exportAsset('master-icon', 'png', 512, 512, 'icon_512.png')" class="w-full bg-slate-50 hover:bg-slate-100 text-aro-dark p-3 rounded-xl text-sm font-medium transition flex items-center justify-between border border-slate-200 group">
+                        <div class="flex items-center"><i class="fa-brands fa-apple text-slate-600 mr-3 text-lg w-5 text-center"></i> 
+                            <div class="text-left"><p>icon_512.png</p><p class="text-[10px] text-slate-400">Base para Mac (.icns) e Android</p></div>
+                        </div>
+                        <i class="fa-solid fa-download text-slate-300 group-hover:text-aro-orange"></i>
+                    </button>
+
+                    <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 mt-6">2. Logomarcas da Interface</h4>
+
+                    <!-- Botão logo.svg -->
+                    <button onclick="exportVector('logo-completa', 'logo.svg')" class="w-full bg-slate-50 hover:bg-slate-100 text-aro-dark p-3 rounded-xl text-sm font-medium transition flex items-center justify-between border border-slate-200 group">
+                        <div class="flex items-center"><i class="fa-solid fa-heading text-aro-orange mr-3 text-lg w-5 text-center"></i> 
+                            <div class="text-left"><p>logo.svg</p><p class="text-[10px] text-slate-400">Header Logo Vetorial</p></div>
+                        </div>
+                        <i class="fa-solid fa-download text-slate-300 group-hover:text-aro-orange"></i>
+                    </button>
+
+                    <!-- Botão logo.png -->
+                    <!-- Proporção 450x120 => 900x240 para alta definição -->
+                    <button onclick="exportAsset('logo-completa', 'png', 900, 240, 'logo.png')" class="w-full bg-slate-50 hover:bg-slate-100 text-aro-dark p-3 rounded-xl text-sm font-medium transition flex items-center justify-between border border-slate-200 group">
+                        <div class="flex items-center"><i class="fa-regular fa-image text-green-500 mr-3 text-lg w-5 text-center"></i> 
+                            <div class="text-left"><p>logo.png</p><p class="text-[10px] text-slate-400">Web/UI Logo (Fundo Transparente)</p></div>
+                        </div>
+                        <i class="fa-solid fa-download text-slate-300 group-hover:text-aro-orange"></i>
+                    </button>
+                    
+                    <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 mt-6">3. Redes Sociais / Geral</h4>
+
+                    <!-- Botão avatar_escuro.jpg -->
+                    <button onclick="exportAsset('master-icon', 'jpeg', 1080, 1080, 'avatar_escuro.jpg')" class="w-full bg-aro-dark hover:bg-black text-white p-3 rounded-xl text-sm font-medium transition flex items-center justify-between shadow-md group">
+                        <div class="flex items-center"><i class="fa-solid fa-share-nodes text-aro-orange mr-3 text-lg w-5 text-center"></i> 
+                            <div class="text-left"><p>avatar_escuro.jpg</p><p class="text-[10px] text-slate-400">Alta resolução fundo chumbo (1080px)</p></div>
+                        </div>
+                        <i class="fa-solid fa-download text-white/50 group-hover:text-white"></i>
+                    </button>
+                </div>
+                
+                <!-- Canvas Oculto para renderização das imagens -->
+                <canvas id="renderCanvas" style="display: none;"></canvas>
+            </div>
+        </div>
+
+        <!-- COLUNA DIREITA: Visualização dos Assets Visuais -->
+        <div class="lg:col-span-8 space-y-8">
+            
+            <!-- APENAS O ÍCONE (A SER EXPORTADO COMO icon.*) -->
+            <div>
+                <h2 class="text-2xl font-heading font-bold text-aro-dark mb-4">Master Icon (<code class="text-aro-orange text-lg">icon.svg</code> / <code class="text-aro-orange text-lg">icon.png</code>)</h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Fundo Escuro -->
+                    <div class="bg-aro-dark p-10 rounded-2xl shadow-sm border border-slate-800 flex flex-col items-center justify-center relative">
+                        <div class="absolute top-4 left-4 text-[10px] font-bold tracking-widest text-white/30">DARK THEME PREVIEW</div>
+                        
+                        <!-- ESTE É O SVG MESTRE QUE SERÁ CONVERTIDO -->
+                        <svg id="master-icon" viewBox="0 0 120 120" width="140" height="140" xmlns="http://www.w3.org/2000/svg">
+                            <!-- Hexágono Base -->
+                            <polygon points="60,15 99,37.5 99,82.5 60,105 21,82.5 21,37.5" fill="none" stroke="#ffffff" stroke-width="10" stroke-linejoin="round" />
+                            <!-- Conexões -->
+                            <path d="M 60 60 L 60 15 M 60 60 L 99 82.5 M 60 60 L 21 82.5" fill="none" stroke="#f26522" stroke-width="10" stroke-linecap="round" />
+                            <!-- Nós Laranjas -->
+                            <circle cx="60" cy="15" r="9" fill="#f26522" />
+                            <circle cx="99" cy="82.5" r="9" fill="#f26522" />
+                            <circle cx="21" cy="82.5" r="9" fill="#f26522" />
+                            <!-- Nós Secundários (Brancos) -->
+                            <circle cx="99" cy="37.5" r="6" fill="#ffffff" />
+                            <circle cx="60" cy="105" r="6" fill="#ffffff" />
+                            <circle cx="21" cy="37.5" r="6" fill="#ffffff" />
+                            <!-- O Núcleo (Nexus) -->
+                            <circle cx="60" cy="60" r="16" fill="#f26522" />
+                            <circle cx="60" cy="60" r="6" fill="#2b2b2b" />
+                        </svg>
+                    </div>
+
+                    <!-- Fundo Claro -->
+                    <div class="bg-white p-10 rounded-2xl shadow-sm border border-slate-200 flex flex-col items-center justify-center relative pattern-bg">
+                        <div class="absolute top-4 left-4 text-[10px] font-bold tracking-widest text-slate-400">LIGHT THEME PREVIEW</div>
+                        <svg viewBox="0 0 120 120" width="140" height="140" xmlns="http://www.w3.org/2000/svg">
+                            <polygon points="60,15 99,37.5 99,82.5 60,105 21,82.5 21,37.5" fill="none" stroke="#2b2b2b" stroke-width="10" stroke-linejoin="round" />
+                            <path d="M 60 60 L 60 15 M 60 60 L 99 82.5 M 60 60 L 21 82.5" fill="none" stroke="#f26522" stroke-width="10" stroke-linecap="round" />
+                            <circle cx="60" cy="15" r="9" fill="#f26522" />
+                            <circle cx="99" cy="82.5" r="9" fill="#f26522" />
+                            <circle cx="21" cy="82.5" r="9" fill="#f26522" />
+                            <circle cx="99" cy="37.5" r="6" fill="#2b2b2b" />
+                            <circle cx="60" cy="105" r="6" fill="#2b2b2b" />
+                            <circle cx="21" cy="37.5" r="6" fill="#2b2b2b" />
+                            <circle cx="60" cy="60" r="16" fill="#f26522" />
+                            <circle cx="60" cy="60" r="6" fill="#ffffff" />
+                        </svg>
+                    </div>
+                </div>
+            </div>
+
+            <!-- LOGO PRINCIPAL (HORIZONTAL) -->
+            <div>
+                <h2 class="text-2xl font-heading font-bold text-aro-dark mb-4">Header Logo (<code class="text-aro-orange text-lg">logo.svg</code> / <code class="text-aro-orange text-lg">logo.png</code>)</h2>
+                
+                <div class="bg-white p-10 rounded-2xl shadow-sm border border-slate-200 flex items-center justify-center pattern-bg">
+                    
+                    <!-- SVG LOGO HORIZONTAL -->
+                    <svg id="logo-completa" viewBox="0 0 450 120" width="100%" height="120" xmlns="http://www.w3.org/2000/svg" style="max-width: 450px;">
+                        <g transform="translate(10, 0)">
+                            <polygon points="50,15 86.6,36.2 86.6,78.8 50,100 13.4,78.8 13.4,36.2" fill="none" stroke="#2b2b2b" stroke-width="8" stroke-linejoin="round" />
+                            <path d="M 50 57.5 L 50 15 M 50 57.5 L 86.6 78.8 M 50 57.5 L 13.4 78.8" fill="none" stroke="#f26522" stroke-width="8" stroke-linecap="round" />
+                            <circle cx="50" cy="15" r="7" fill="#f26522" />
+                            <circle cx="86.6" cy="78.8" r="7" fill="#f26522" />
+                            <circle cx="13.4" cy="78.8" r="7" fill="#f26522" />
+                            <circle cx="86.6" cy="36.2" r="5" fill="#2b2b2b" />
+                            <circle cx="50" cy="100" r="5" fill="#2b2b2b" />
+                            <circle cx="13.4" cy="36.2" r="5" fill="#2b2b2b" />
+                            <circle cx="50" cy="57.5" r="13" fill="#f26522" />
+                            <circle cx="50" cy="57.5" r="5" fill="#ffffff" />
+                        </g>
+                        <!-- Textos alinhados e incorporados -->
+                        <g transform="translate(130, 75)">
+                            <text font-family="'Poppins', sans-serif" font-weight="700" font-size="52" fill="#f26522" letter-spacing="-1">ARO</text>
+                            <text font-family="'Poppins', sans-serif" font-weight="900" font-size="52" fill="#2b2b2b" x="115" letter-spacing="-1">NEXUS</text>
+                        </g>
+                    </svg>
+                </div>
+            </div>
+
+            <!-- Previews Interface RustDesk -->
+            <div class="mt-8 p-6 bg-slate-800 rounded-2xl border border-slate-700">
+                <h3 class="text-white font-semibold mb-4 text-sm"><i class="fa-solid fa-desktop mr-2 text-aro-orange"></i> Simulação na Interface</h3>
+                <div class="flex items-center bg-[#f1f1f1] p-3 rounded-t-lg border-b border-slate-300 shadow-inner">
+                    <!-- Simula a logo do Header do RustDesk -->
+                    <svg viewBox="0 0 450 120" width="120" height="32" xmlns="http://www.w3.org/2000/svg">
+                        <g transform="translate(10, 0)">
+                            <polygon points="50,15 86.6,36.2 86.6,78.8 50,100 13.4,78.8 13.4,36.2" fill="none" stroke="#2b2b2b" stroke-width="8" stroke-linejoin="round" />
+                            <path d="M 50 57.5 L 50 15 M 50 57.5 L 86.6 78.8 M 50 57.5 L 13.4 78.8" fill="none" stroke="#f26522" stroke-width="8" stroke-linecap="round" />
+                            <circle cx="50" cy="15" r="7" fill="#f26522" />
+                            <circle cx="86.6" cy="78.8" r="7" fill="#f26522" />
+                            <circle cx="13.4" cy="78.8" r="7" fill="#f26522" />
+                            <circle cx="86.6" cy="36.2" r="5" fill="#2b2b2b" />
+                            <circle cx="50" cy="100" r="5" fill="#2b2b2b" />
+                            <circle cx="13.4" cy="36.2" r="5" fill="#2b2b2b" />
+                            <circle cx="50" cy="57.5" r="13" fill="#f26522" />
+                            <circle cx="50" cy="57.5" r="5" fill="#ffffff" />
+                        </g>
+                        <g transform="translate(130, 75)">
+                            <text font-family="'Poppins', sans-serif" font-weight="700" font-size="52" fill="#f26522" letter-spacing="-1">ARO</text>
+                            <text font-family="'Poppins', sans-serif" font-weight="900" font-size="52" fill="#2b2b2b" x="115" letter-spacing="-1">NEXUS</text>
+                        </g>
+                    </svg>
+                    <div class="ml-4 text-xs font-sans text-slate-500 font-medium">Sua ID</div>
+                    <div class="ml-2 text-xl font-sans font-bold text-slate-800 tracking-wider">123 456 789</div>
+                </div>
+                <div class="h-24 bg-white rounded-b-lg opacity-50"></div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- MOTOR DE EXPORTAÇÃO SEGURO -->
+    <script>
+        // Exporta Imagens Rasterizadas (PNG, JPG, ICO)
+        function exportAsset(svgId, formato, reqWidth, reqHeight, nomeArquivo) {
+            const btn = event.currentTarget;
+            const iconeOriginal = btn.querySelector('i:last-child').className;
+            
+            // UI de Carregamento
+            btn.querySelector('i:last-child').className = "fa-solid fa-spinner fa-spin text-aro-orange";
+            
+            try {
+                const svgElement = document.getElementById(svgId);
+                const canvas = document.getElementById('renderCanvas');
+                const ctx = canvas.getContext('2d');
+
+                // Define as dimensões exatas solicitadas
+                canvas.width = reqWidth;
+                canvas.height = reqHeight;
+
+                // Prepara o SVG Mestre
+                const svgClone = svgElement.cloneNode(true);
+                svgClone.setAttribute('width', reqWidth);
+                svgClone.setAttribute('height', reqHeight);
+
+                // Garante a inserção da fonte no SVG antes de converter (Importante para a logo.png)
+                const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
+                const style = document.createElementNS("http://www.w3.org/2000/svg", "style");
+                style.textContent = "@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@700;900&display=swap'); text { font-family: 'Poppins', sans-serif; }";
+                defs.appendChild(style);
+                svgClone.insertBefore(defs, svgClone.firstChild);
+
+                const xml = new XMLSerializer().serializeToString(svgClone);
+                const imageURI = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(xml);
+
+                const img = new Image();
+                img.onload = function() {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                    // Se for JPEG, precisa de fundo sólido
+                    if (formato === 'jpeg') {
+                        ctx.fillStyle = '#2b2b2b';
+                        ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    }
+                    
+                    ctx.drawImage(img, 0, 0, reqWidth, reqHeight);
+
+                    let urlDeDownload = '';
+
+                    if (formato === 'png' || formato === 'ico') {
+                        // ICO é apenas um PNG renomeado (ACEITO 100% pelo compilador do Windows e NSIS)
+                        urlDeDownload = canvas.toDataURL('image/png');
+                    } else if (formato === 'jpeg') {
+                        urlDeDownload = canvas.toDataURL('image/jpeg', 1.0);
+                    }
+
+                    dispararDownload(urlDeDownload, nomeArquivo);
+
+                    // Restaura UI
+                    setTimeout(() => { btn.querySelector('i:last-child').className = iconeOriginal; }, 600);
+                };
+                img.src = imageURI;
+
+            } catch (erro) {
+                console.error("Erro na exportação:", erro);
+                alert("Erro ao exportar. Tente rodar o arquivo no seu computador.");
+                btn.querySelector('i:last-child').className = iconeOriginal;
+            }
+        }
+
+        // Exporta Arquivos Vetoriais Puros (SVG)
+        function exportVector(svgId, nomeArquivo) {
+            const btn = event.currentTarget;
+            const iconeOriginal = btn.querySelector('i:last-child').className;
+            btn.querySelector('i:last-child').className = "fa-solid fa-spinner fa-spin text-aro-orange";
+
+            try {
+                const svgElement = document.getElementById(svgId);
+                const svgClone = svgElement.cloneNode(true);
+                
+                // Embutir as fontes para o SVG funcionar em qualquer PC
+                const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
+                const style = document.createElementNS("http://www.w3.org/2000/svg", "style");
+                style.textContent = "@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@700;900&display=swap'); text { font-family: 'Poppins', sans-serif; }";
+                defs.appendChild(style);
+                svgClone.insertBefore(defs, svgClone.firstChild);
+                
+                let source = new XMLSerializer().serializeToString(svgClone);
+                
+                // Limpeza de namespaces
+                if(!source.match(/^<svg[^>]+xmlns="http\:\/\/www\.w3\.org\/2000\/svg"/)) { 
+                    source = source.replace(/^<svg/, '<svg xmlns="http://www.w3.org/2000/svg"'); 
+                }
+                source = '<?xml version="1.0" standalone="no"?>\r\n' + source;
+                
+                const url = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(source);
+                dispararDownload(url, nomeArquivo);
+
+                setTimeout(() => { btn.querySelector('i:last-child').className = iconeOriginal; }, 600);
+            } catch (erro) {
+                console.error("Erro no download SVG:", erro);
+                alert("Erro ao gerar o arquivo SVG.");
+                btn.querySelector('i:last-child').className = iconeOriginal;
+            }
+        }
+
+        function dispararDownload(url, filename) {
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+    </script>
+</body>
+</html>

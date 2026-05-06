@@ -458,20 +458,29 @@ def init_global_vars(dist_dir, app_name, args):
     dist_app = dist_dir.joinpath(app_name + ".exe")
 
     def read_process_output(args):
-        process = subprocess.Popen(
-            f"{dist_app} {args}",
+        if not dist_app.exists():
+            return 1, ""
+        cmd = [str(dist_app)]
+        if isinstance(args, str) and args.strip():
+            cmd.extend(args.split())
+        completed = subprocess.run(
+            cmd,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
-            shell=True,
+            text=True,
+            check=False,
         )
-        output, _ = process.communicate()
-        return output.decode("utf-8").strip()
+        return completed.returncode, (completed.stdout or "").strip()
 
     global g_version
     global g_build_date
     g_version = args.version.replace("-", ".")
     if g_version == "":
-        g_version = read_process_output("--version")
+        rc, out = read_process_output("--version")
+        if rc != 0:
+            print(f"Error: failed to read version from {dist_app} (exit code {rc})")
+            return False
+        g_version = out
     version_pattern = re.compile(r"\d+\.\d+\.\d+.*")
     if not version_pattern.match(g_version):
         print(f"Error: version {g_version} not found in {dist_app}")
@@ -482,11 +491,17 @@ def init_global_vars(dist_dir, app_name, args):
             raise ValueError(f"Invalid revision version: {args.revision_version}")    
         g_version = f"{g_version}.{args.revision_version}"
 
-    g_build_date = read_process_output("--build-date")
+    rc, out = read_process_output("--build-date")
+    if rc != 0:
+        print(f"Warning: failed to read build date from {dist_app} (exit code {rc}), using current time")
+        g_build_date = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+        return True
+    g_build_date = out
     build_date_pattern = re.compile(r"\d{4}-\d{2}-\d{2} \d{2}:\d{2}")
     if not build_date_pattern.match(g_build_date):
-        print(f"Error: build date {g_build_date} not found in {dist_app}")
-        return False
+        print(f"Warning: build date {g_build_date} not found in {dist_app}, using current time")
+        g_build_date = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+        return True
 
     return True
 

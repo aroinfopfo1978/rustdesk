@@ -175,6 +175,40 @@ jobs:
           head -n 100 "${VCPKG_ROOT}/buildtrees/ffmpeg/build-x64-windows-static-rel-out.log" || true
         shell: bash
 
+      - name: Normalize Windows ICO assets
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          python -m pip install --quiet Pillow
+          $script = @'
+from pathlib import Path
+from PIL import Image
+
+root = Path(r"${{ github.workspace }}")
+candidates = [
+    root / "imgs" / "aronexus" / "icon.png",
+    root / "res" / "icon.png",
+]
+src = next((p for p in candidates if p.exists()), None)
+if src is None:
+    raise SystemExit("No source PNG found for ICO generation (expected imgs/aronexus/icon.png or res/icon.png)")
+
+img = Image.open(src).convert("RGBA")
+sizes = [(16, 16), (24, 24), (32, 32), (48, 48), (64, 64), (128, 128)]
+targets = [
+    root / "flutter" / "windows" / "runner" / "resources" / "app_icon.ico",
+    root / "flutter" / "windows" / "runner" / "resources" / "icon.ico",
+    root / "res" / "icon.ico",
+]
+for out in targets:
+    out.parent.mkdir(parents=True, exist_ok=True)
+    img.save(out, format="ICO", sizes=sizes)
+    print(f"Generated ICO: {out}")
+'@
+          $tmp = Join-Path $env:RUNNER_TEMP 'normalize_ico.py'
+          Set-Content -Path $tmp -Value $script -Encoding utf8
+          python $tmp
+
       - name: Build rustdesk
         id: build_rustdesk
         continue-on-error: true
@@ -443,16 +477,23 @@ jobs:
           Push-Location (Join-Path $env:GITHUB_WORKSPACE 'res/msi')
           try {
             "DIST_DIR=$env:DIST_DIR" | Tee-Object -FilePath $log -Append | ForEach-Object { Write-Host $_ }
-            & python preprocess.py --arp -d ("../../{0}" -f $env:DIST_DIR) 2>&1 | Tee-Object -FilePath $log -Append
+            & python preprocess.py --arp --app-name "ARO Nexus" --manufacturer "ARO Tecnologia" --version $env:VERSION -d ("../../{0}" -f $env:DIST_DIR) 2>&1 | Tee-Object -FilePath $log -Append
             if ($LASTEXITCODE -ne 0) { throw "preprocess.py failed with exit code $LASTEXITCODE" }
             & nuget restore msi.sln 2>&1 | Tee-Object -FilePath $log -Append
             if ($LASTEXITCODE -ne 0) { throw "nuget restore failed with exit code $LASTEXITCODE" }
             & msbuild msi.sln -p:Configuration=Release -p:Platform=x64 /p:TargetVersion=Windows10 2>&1 | Tee-Object -FilePath $log -Append
             if ($LASTEXITCODE -ne 0) { throw "msbuild failed with exit code $LASTEXITCODE" }
-            $srcMsi = Join-Path $PWD 'Package/bin/x64/Release/en-us/Package.msi'
-            $dstMsi = Join-Path $env:GITHUB_WORKSPACE ("SignOutput/aro-nexus-{0}-x86_64.msi" -f $env:VERSION)
-            if (-not (Test-Path $srcMsi)) { throw "Package.msi not found: $srcMsi" }
-            Move-Item -Force $srcMsi $dstMsi
+            $releaseDir = Join-Path $PWD 'Package/bin/x64/Release'
+            if (-not (Test-Path $releaseDir)) { throw "MSI output folder not found: $releaseDir" }
+            $msiCandidates = Get-ChildItem -Recurse -File -Path $releaseDir -Filter '*.msi' -ErrorAction SilentlyContinue
+            $srcMsi = $msiCandidates | Where-Object { $_.Name -ieq 'Package.msi' } | Select-Object -First 1
+            if (-not $srcMsi) { $srcMsi = $msiCandidates | Select-Object -First 1 }
+            if (-not $srcMsi) { throw "No MSI found under: $releaseDir" }
+            $signOut = Join-Path $env:GITHUB_WORKSPACE 'SignOutput'
+            New-Item -ItemType Directory -Path $signOut -Force | Out-Null
+            $dstMsi = Join-Path $signOut ("aro-nexus-{0}-x86_64.msi" -f $env:VERSION)
+            "MSI found: $($srcMsi.FullName)" | Tee-Object -FilePath $log -Append | ForEach-Object { Write-Host $_ }
+            Move-Item -Force $srcMsi.FullName $dstMsi
           } finally {
             Pop-Location
           }
