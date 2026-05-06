@@ -353,6 +353,28 @@ jobs:
           python -m pip install requests argparse
           BASE_URL=${{ env.SIGN_BASE_URL }} SECRET_KEY=${{ secrets.SIGN_SECRET_KEY }} python res/job.py sign_files ./${{ env.DIST_DIR }}/
 
+      - name: Package folder build (zip)
+        if: env.UPLOAD_ARTIFACT == 'true'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $distDir = Join-Path $env:GITHUB_WORKSPACE $env:DIST_DIR
+          if (-not (Test-Path $distDir)) { throw "DIST_DIR not found: $distDir" }
+          $signOut = Join-Path $env:GITHUB_WORKSPACE 'SignOutput'
+          New-Item -ItemType Directory -Path $signOut -Force | Out-Null
+          $zipPath = Join-Path $signOut ("aro-nexus-{0}-x86_64.zip" -f $env:VERSION)
+          if (Test-Path $zipPath) { Remove-Item -Force $zipPath }
+          Compress-Archive -Path (Join-Path $distDir '*') -DestinationPath $zipPath -Force
+          if (-not (Test-Path $zipPath)) { throw "Zip not created: $zipPath" }
+
+      - name: Upload folder build zip
+        if: env.UPLOAD_ARTIFACT == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: aro-nexus-zip-windows-x86_64
+          path: SignOutput/aro-nexus-*-x86_64.zip
+          if-no-files-found: error
+
       - name: Build self-extracted executable
         shell: pwsh
         if: env.UPLOAD_ARTIFACT == 'true'
@@ -522,3 +544,4 @@ jobs:
           files: |
             ./SignOutput/aro-nexus-*.msi
             ./SignOutput/aro-nexus-*.exe
+            ./SignOutput/aro-nexus-*.zip
