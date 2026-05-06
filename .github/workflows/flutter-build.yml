@@ -180,31 +180,32 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           python -m pip install --quiet Pillow
-          $script = @'
-from pathlib import Path
-from PIL import Image
-
-root = Path(r"${{ github.workspace }}")
-candidates = [
-    root / "imgs" / "aronexus" / "icon.png",
-    root / "res" / "icon.png",
-]
-src = next((p for p in candidates if p.exists()), None)
-if src is None:
-    raise SystemExit("No source PNG found for ICO generation (expected imgs/aronexus/icon.png or res/icon.png)")
-
-img = Image.open(src).convert("RGBA")
-sizes = [(16, 16), (24, 24), (32, 32), (48, 48), (64, 64), (128, 128)]
-targets = [
-    root / "flutter" / "windows" / "runner" / "resources" / "app_icon.ico",
-    root / "flutter" / "windows" / "runner" / "resources" / "icon.ico",
-    root / "res" / "icon.ico",
-]
-for out in targets:
-    out.parent.mkdir(parents=True, exist_ok=True)
-    img.save(out, format="ICO", sizes=sizes)
-    print(f"Generated ICO: {out}")
-'@
+          $script = @(
+            "import os",
+            "from pathlib import Path",
+            "from PIL import Image",
+            "",
+            "root = Path(os.environ['GITHUB_WORKSPACE'])",
+            "candidates = [",
+            "    root / 'imgs' / 'aronexus' / 'icon.png',",
+            "    root / 'res' / 'icon.png',",
+            "]",
+            "src = next((p for p in candidates if p.exists()), None)",
+            "if src is None:",
+            "    raise SystemExit('No source PNG found for ICO generation (expected imgs/aronexus/icon.png or res/icon.png)')",
+            "",
+            "img = Image.open(src).convert('RGBA')",
+            "sizes = [(16, 16), (24, 24), (32, 32), (48, 48), (64, 64), (128, 128)]",
+            "targets = [",
+            "    root / 'flutter' / 'windows' / 'runner' / 'resources' / 'app_icon.ico',",
+            "    root / 'flutter' / 'windows' / 'runner' / 'resources' / 'icon.ico',",
+            "    root / 'res' / 'icon.ico',",
+            "]",
+            "for out in targets:",
+            "    out.parent.mkdir(parents=True, exist_ok=True)",
+            "    img.save(out, format='ICO', sizes=sizes)",
+            "    print(f'Generated ICO: {out}')"
+          ) -join "`n"
           $tmp = Join-Path $env:RUNNER_TEMP 'normalize_ico.py'
           Set-Content -Path $tmp -Value $script -Encoding utf8
           python $tmp
