@@ -384,8 +384,13 @@ jobs:
             if (-not $packer) {
               throw "rustdesk-portable-packer.exe not found (searched libs/portable/target and target)"
             }
-            Write-Host ("Move rustdesk-portable-packer.exe -> SignOutput ({0})" -f $packer.FullName)
-            Move-Item -Force $packer.FullName (Join-Path $signOutput ("aro-nexus-{0}-x86_64.exe" -f $env:VERSION))
+            $portableOut = Join-Path $signOutput ("aro-nexus-{0}-x86_64.exe" -f $env:VERSION)
+            ("Portable packer: {0}" -f $packer.FullName) | Tee-Object -FilePath $log -Append | ForEach-Object { Write-Host $_ }
+            ("Copy portable packer -> {0}" -f $portableOut) | Tee-Object -FilePath $log -Append | ForEach-Object { Write-Host $_ }
+            Copy-Item -Force $packer.FullName $portableOut
+            if (-not (Test-Path $portableOut)) {
+              throw "portable output exe not found after copy: $portableOut"
+            }
 
             $portableOk = $true
           } catch {
@@ -400,8 +405,8 @@ jobs:
           }
 
           $portableOkValue = if ($portableOk) { 'true' } else { 'false' }
-          "PORTABLE_OK=$portableOkValue" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
-          Write-Host "PORTABLE_OK=$portableOkValue"
+          Add-Content -Path $env:GITHUB_ENV -Value ("PORTABLE_OK={0}" -f $portableOkValue) -Encoding utf8
+          ("PORTABLE_OK={0}" -f $portableOkValue) | Tee-Object -FilePath $log -Append | ForEach-Object { Write-Host $_ }
           exit 0
 
       - name: Upload portable pack log
