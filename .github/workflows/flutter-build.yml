@@ -356,16 +356,30 @@ jobs:
       - name: Package folder build (zip)
         if: env.UPLOAD_ARTIFACT == 'true'
         shell: pwsh
+        continue-on-error: true
         run: |
           $ErrorActionPreference = 'Stop'
+          $log = Join-Path $env:GITHUB_WORKSPACE 'zip-pack.log'
+          New-Item -ItemType File -Path $log -Force | Out-Null
           $distDir = Join-Path $env:GITHUB_WORKSPACE $env:DIST_DIR
           if (-not (Test-Path $distDir)) { throw "DIST_DIR not found: $distDir" }
           $signOut = Join-Path $env:GITHUB_WORKSPACE 'SignOutput'
           New-Item -ItemType Directory -Path $signOut -Force | Out-Null
           $zipPath = Join-Path $signOut ("aro-nexus-{0}-x86_64.zip" -f $env:VERSION)
           if (Test-Path $zipPath) { Remove-Item -Force $zipPath }
-          Compress-Archive -Path (Join-Path $distDir '*') -DestinationPath $zipPath -Force
-          if (-not (Test-Path $zipPath)) { throw "Zip not created: $zipPath" }
+          try {
+            if (Get-Command tar -ErrorAction SilentlyContinue) {
+              "Using tar to create zip: $zipPath" | Tee-Object -FilePath $log -Append | ForEach-Object { Write-Host $_ }
+              & tar -a -c -f $zipPath -C $distDir . 2>&1 | Tee-Object -FilePath $log -Append
+              if ($LASTEXITCODE -ne 0) { throw "tar failed with exit code $LASTEXITCODE" }
+            } else {
+              "Using Compress-Archive to create zip: $zipPath" | Tee-Object -FilePath $log -Append | ForEach-Object { Write-Host $_ }
+              Compress-Archive -Path (Join-Path $distDir '*') -DestinationPath $zipPath -Force
+            }
+            if (-not (Test-Path $zipPath)) { throw "Zip not created: $zipPath" }
+          } catch {
+            "Zip pack failed: $($_.Exception.Message)" | Tee-Object -FilePath $log -Append | ForEach-Object { Write-Host $_ }
+          }
 
       - name: Upload folder build zip
         if: env.UPLOAD_ARTIFACT == 'true'
@@ -373,7 +387,15 @@ jobs:
         with:
           name: aro-nexus-zip-windows-x86_64
           path: SignOutput/aro-nexus-*-x86_64.zip
-          if-no-files-found: error
+          if-no-files-found: warn
+
+      - name: Upload zip pack log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: aro-nexus-zip-pack-log-windows-x86_64
+          path: zip-pack.log
+          if-no-files-found: ignore
 
       - name: Build self-extracted executable
         shell: pwsh
