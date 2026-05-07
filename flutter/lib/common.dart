@@ -20,6 +20,7 @@ import 'package:flutter_hbb/utils/platform_channel.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
 import 'package:get/get_rx/src/rx_workers/utils/debouncer.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:uni_links/uni_links.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -250,7 +251,7 @@ class ColorThemeExtension extends ThemeExtension<ColorThemeExtension> {
 class MyTheme {
   MyTheme._();
 
-  static const Color grayBg = Color(0xFFEFEFF2);
+  static const Color grayBg = Color(0xFFF1F5F9);
   static const Color accent = Color(0xFFF26522);
   static const Color accent50 = Color(0x77F26522);
   static const Color accent80 = Color(0xAAF26522);
@@ -376,7 +377,7 @@ class MyTheme {
     useMaterial3: false,
     brightness: Brightness.light,
     hoverColor: Color.fromARGB(255, 224, 224, 224),
-    scaffoldBackgroundColor: Colors.white,
+    scaffoldBackgroundColor: Color(0xFFF8FAFC),
     appBarTheme: AppBarTheme(
       shadowColor: Colors.transparent,
     ),
@@ -401,13 +402,29 @@ class MyTheme {
             ),
           )
         : null,
-    textTheme: const TextTheme(
-        titleLarge: TextStyle(fontSize: 19, color: Colors.black87),
-        titleSmall: TextStyle(fontSize: 14, color: Colors.black87),
-        bodySmall: TextStyle(fontSize: 12, color: Colors.black87, height: 1.25),
-        bodyMedium:
-            TextStyle(fontSize: 14, color: Colors.black87, height: 1.25),
-        labelLarge: TextStyle(fontSize: 16.0, color: MyTheme.accent80)),
+    textTheme: GoogleFonts.interTextTheme(const TextTheme(
+      titleLarge: TextStyle(fontSize: 19, color: Color(0xFF334155)),
+      titleSmall: TextStyle(fontSize: 14, color: Color(0xFF334155)),
+      bodySmall: TextStyle(fontSize: 12, color: Color(0xFF64748B), height: 1.25),
+      bodyMedium: TextStyle(fontSize: 14, color: Color(0xFF64748B), height: 1.25),
+      labelLarge: TextStyle(fontSize: 16.0, color: MyTheme.accent80),
+    )).copyWith(
+      titleLarge: GoogleFonts.poppins(
+        fontSize: 19,
+        fontWeight: FontWeight.w700,
+        color: const Color(0xFF334155),
+      ),
+      titleSmall: GoogleFonts.poppins(
+        fontSize: 14,
+        fontWeight: FontWeight.w600,
+        color: const Color(0xFF334155),
+      ),
+      labelLarge: GoogleFonts.poppins(
+        fontSize: 16.0,
+        fontWeight: FontWeight.w600,
+        color: MyTheme.accent80,
+      ),
+    ),
     cardColor: grayBg,
     hintColor: Color(0xFFAAAAAA),
     visualDensity: VisualDensity.adaptivePlatformDensity,
@@ -498,14 +515,30 @@ class MyTheme {
             ),
           )
         : null,
-    textTheme: const TextTheme(
-      titleLarge: TextStyle(fontSize: 19),
-      titleSmall: TextStyle(fontSize: 14),
-      bodySmall: TextStyle(fontSize: 12, height: 1.25),
-      bodyMedium: TextStyle(fontSize: 14, height: 1.25),
+    textTheme: GoogleFonts.interTextTheme(const TextTheme(
+      titleLarge: TextStyle(fontSize: 19, color: Colors.white),
+      titleSmall: TextStyle(fontSize: 14, color: Colors.white70),
+      bodySmall: TextStyle(fontSize: 12, color: Color(0xFF94A3B8), height: 1.25),
+      bodyMedium: TextStyle(fontSize: 14, color: Color(0xFF94A3B8), height: 1.25),
       labelLarge: TextStyle(
         fontSize: 16.0,
         fontWeight: FontWeight.bold,
+        color: accent80,
+      ),
+    )).copyWith(
+      titleLarge: GoogleFonts.poppins(
+        fontSize: 19,
+        fontWeight: FontWeight.w700,
+        color: Colors.white,
+      ),
+      titleSmall: GoogleFonts.poppins(
+        fontSize: 14,
+        fontWeight: FontWeight.w600,
+        color: Colors.white70,
+      ),
+      labelLarge: GoogleFonts.poppins(
+        fontSize: 16.0,
+        fontWeight: FontWeight.w700,
         color: accent80,
       ),
     ),
@@ -3719,8 +3752,8 @@ Widget loadPowered(BuildContext context) {
 }
 
 // max 300 x 60
-Widget loadLogo() {
-  final isDark = Get.isDarkMode;
+Widget loadLogo({bool? forceDark}) {
+  final isDark = forceDark ?? Get.isDarkMode;
   final iconAsset = isDark ? 'assets/icon-dark.svg' : 'assets/icon.svg';
   final nexusColor = isDark ? Colors.white : const Color(0xFF2B2B2B);
   return Container(
@@ -3766,8 +3799,8 @@ Widget loadLogo() {
   ).marginOnly(left: 12, right: 12, top: 12);
 }
 
-Widget loadIcon(double size) {
-  final isDark = Get.isDarkMode;
+Widget loadIcon(double size, {bool? forceDark}) {
+  final isDark = forceDark ?? Get.isDarkMode;
   final iconAsset = isDark ? 'assets/icon-dark.svg' : 'assets/icon.svg';
   return SvgPicture.asset(iconAsset, width: size, height: size);
 }
