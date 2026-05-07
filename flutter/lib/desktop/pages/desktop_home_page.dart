@@ -81,7 +81,7 @@ class _DesktopHomePageState extends State<DesktopHomePage>
     final isOutgoingOnly = bind.isOutgoingOnly();
     final children = <Widget>[
       if (!isOutgoingOnly) buildPresetPasswordWarning(),
-      if (bind.isCustomClient())
+      if (!bind.isCustomClient())
         Align(
           alignment: Alignment.center,
           child: loadPowered(context),
@@ -131,8 +131,17 @@ class _DesktopHomePageState extends State<DesktopHomePage>
     return ChangeNotifierProvider.value(
       value: gFFI.serverModel,
       child: Container(
-        width: isIncomingOnly ? 280.0 : 200.0,
-        color: Theme.of(context).colorScheme.surface,
+        width: isIncomingOnly ? 280.0 : 260.0,
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Color(0xFF2B2B2B),
+              Color(0xFF1F2937),
+            ],
+          ),
+        ),
         child: Stack(
           children: [
             Column(
@@ -213,7 +222,7 @@ class _DesktopHomePageState extends State<DesktopHomePage>
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          translate("ID"),
+                          bind.isCustomClient() ? 'O seu ID' : translate("ID"),
                           style: TextStyle(
                               fontSize: 14,
                               color: Theme.of(context)
@@ -314,7 +323,9 @@ class _DesktopHomePageState extends State<DesktopHomePage>
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   AutoSizeText(
-                    translate("One-time Password"),
+                    bind.isCustomClient()
+                        ? 'Palavra-passe de uso único'
+                        : translate("One-time Password"),
                     style: TextStyle(
                         fontSize: 14, color: textColor?.withOpacity(0.5)),
                     maxLines: 1,
@@ -397,27 +408,21 @@ class _DesktopHomePageState extends State<DesktopHomePage>
         mainAxisAlignment: MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Column(
-            children: [
-              if (!isOutgoingOnly)
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    'ARO Nexus',
-                    style: Theme.of(context).textTheme.titleLarge,
+          if (!isOutgoingOnly)
+            Text(
+              'O Seu Computador',
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w700,
                   ),
-                ),
-            ],
-          ),
-          SizedBox(
-            height: 10.0,
-          ),
+            ),
+          const SizedBox(height: 10.0),
           if (!isOutgoingOnly)
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Acesse este computador com o ID e senha abaixo.',
+                  'Este computador pode ser acedido com este ID e palavra-passe.',
                   overflow: TextOverflow.clip,
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
