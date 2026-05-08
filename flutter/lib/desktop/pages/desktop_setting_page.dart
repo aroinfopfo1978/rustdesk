@@ -2427,6 +2427,34 @@ class _AboutState extends State<_About> {
                             style: TextStyle(
                                 fontWeight: FontWeight.w800,
                                 color: Colors.white),
+                          ),
+                          const SizedBox(height: 8),
+                          Wrap(
+                            crossAxisAlignment: WrapCrossAlignment.center,
+                            spacing: 6,
+                            runSpacing: 4,
+                            children: [
+                              const Text(
+                                'Fork do RustDesk (Open Source).',
+                                style: TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 12,
+                                ),
+                              ),
+                              InkWell(
+                                onTap: () {
+                                  launchUrlString('https://github.com/rustdesk/rustdesk');
+                                },
+                                child: const Text(
+                                  'Ver projeto',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 12,
+                                    decoration: TextDecoration.underline,
+                                  ),
+                                ),
+                              ),
+                            ],
                           )
                         ],
                       ),

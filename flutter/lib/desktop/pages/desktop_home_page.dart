@@ -477,7 +477,7 @@ class _DesktopHomePageState extends State<DesktopHomePage>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Este computador pode ser acedido com este ID e palavra-passe.',
+                  translate('desk_tip'),
                   overflow: TextOverflow.clip,
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
