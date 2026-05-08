@@ -61,7 +61,7 @@ class _DesktopHomePageState extends State<DesktopHomePage>
   Widget build(BuildContext context) {
     super.build(context);
     final isIncomingOnly = bind.isIncomingOnly();
-    final isHost = isIncomingOnly && bind.isCustomClient();
+    final isHost = bind.isCustomClient() && (isIncomingOnly || bind.isDisableSettings());
     return _buildBlock(
         child: isHost
             ? buildHostPane(context)
@@ -292,78 +292,304 @@ class _DesktopHomePageState extends State<DesktopHomePage>
       data: hostTheme,
       child: Builder(builder: (context) {
         return SizedBox(
-          width: 360,
+          width: 380,
           child: Container(
-            color: const Color(0xFF1E293B),
-            child: Column(
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Color(0xFF1E293B),
+                  Color(0xFF0F172A),
+                ],
+              ),
+            ),
+            child: Stack(
               children: [
-                const SizedBox(height: 18),
-                Opacity(
-                  opacity: 0.4,
-                  child: Text(
-                    'POWERED BY RUSTDESK',
-                    style: GoogleFonts.inter(
-                      fontSize: 10,
-                      letterSpacing: 1.2,
-                      color: const Color(0xFF94A3B8),
+                Positioned(
+                  top: -120,
+                  right: -120,
+                  child: Container(
+                    width: 240,
+                    height: 240,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: MyTheme.accent.withOpacity(0.10),
                     ),
                   ),
                 ),
-                const SizedBox(height: 14),
-                Center(
-                  child: loadLogo(forceDark: true),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  translate('Slogan_tip'),
-                  style: GoogleFonts.poppins(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: MyTheme.accent,
-                  ),
-                ),
-                const SizedBox(height: 18),
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  padding: const EdgeInsets.fromLTRB(24, 20, 24, 18),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      Align(
+                        alignment: Alignment.center,
+                        child: Opacity(
+                          opacity: 0.4,
+                          child: Text(
+                            'POWERED BY RUSTDESK',
+                            style: GoogleFonts.inter(
+                              fontSize: 10,
+                              letterSpacing: 1.2,
+                              color: const Color(0xFF94A3B8),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      Align(
+                        alignment: Alignment.center,
+                        child: loadLogo(forceDark: true, compact: true),
+                      ),
+                      const SizedBox(height: 10),
+                      Align(
+                        alignment: Alignment.center,
+                        child: Text(
+                          translate('Slogan_tip'),
+                          style: GoogleFonts.poppins(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: MyTheme.accent,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 28),
                       Text(
-                        'O Seu Computador',
-                        style: Theme.of(context).textTheme.titleLarge,
+                        'O Seu Ecrã',
+                        style: GoogleFonts.poppins(
+                          fontSize: 24,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                        ),
                       ),
                       const SizedBox(height: 10),
                       Text(
-                        translate('desk_tip'),
+                        'Este computador pode ser acessado usando este ID e senha temporária.',
                         style: Theme.of(context).textTheme.bodySmall,
                       ),
+                      const SizedBox(height: 22),
+                      _buildHostIdBoard(context),
                       const SizedBox(height: 16),
-                      buildIDBoard(context),
-                      const SizedBox(height: 10),
-                      buildPasswordBoard(context),
-                      const SizedBox(height: 8),
+                      _buildHostPasswordBoard(context),
+                      const SizedBox(height: 18),
                       Align(
                         alignment: Alignment.centerRight,
-                        child: OutlinedButton(
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF334155),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 26, vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
                           onPressed: () {
                             SystemNavigator.pop();
                             if (isWindows) {
                               exit(0);
                             }
                           },
-                          child: Text(translate('Quit')),
+                          child: Text('Sair',
+                              style: GoogleFonts.poppins(
+                                  fontWeight: FontWeight.w600)),
                         ),
                       ),
+                      const Spacer(),
+                      Obx(() {
+                        final s = stateGlobal.svcStatus.value;
+                        final ready = s == SvcStatus.ready;
+                        final dot = ready
+                            ? const Color(0xFF10B981)
+                            : const Color(0xFFF59E0B);
+                        final text = ready ? translate('Ready') : translate('connecting_status');
+                        return Row(
+                          children: [
+                            Container(
+                              width: 8,
+                              height: 8,
+                              decoration: BoxDecoration(
+                                color: dot,
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                text,
+                                overflow: TextOverflow.ellipsis,
+                                style: GoogleFonts.inter(
+                                  fontSize: 12,
+                                  color: const Color(0xFF94A3B8),
+                                ),
+                              ),
+                            ),
+                          ],
+                        );
+                      }),
                     ],
                   ),
                 ),
-                const Spacer(),
-                OnlineStatusWidget().marginOnly(bottom: 8, right: 6),
               ],
             ),
           ),
         );
       }),
+    );
+  }
+
+  Widget _buildHostIdBoard(BuildContext context) {
+    final model = gFFI.serverModel;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 4,
+          height: 26,
+          decoration: const BoxDecoration(color: MyTheme.accent),
+        ).marginOnly(top: 6),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                translate('ID'),
+                style: GoogleFonts.inter(
+                  fontSize: 13,
+                  color: const Color(0xFF94A3B8),
+                ),
+              ),
+              const SizedBox(height: 6),
+              GestureDetector(
+                onDoubleTap: () {
+                  Clipboard.setData(ClipboardData(text: model.serverId.text));
+                  showToast(translate("Copied"));
+                },
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF0F172A),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: const Color(0xFF334155), width: 1),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          model.serverId.text,
+                          style: GoogleFonts.poppins(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                            letterSpacing: 1.0,
+                          ),
+                        ),
+                      ),
+                      InkWell(
+                        onTap: () {
+                          Clipboard.setData(
+                              ClipboardData(text: model.serverId.text));
+                          showToast(translate("Copied"));
+                        },
+                        child: Icon(
+                          Icons.more_vert_outlined,
+                          size: 20,
+                          color: const Color(0xFF94A3B8).withOpacity(0.9),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildHostPasswordBoard(BuildContext context) {
+    final model = gFFI.serverModel;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 4,
+          height: 26,
+          decoration: const BoxDecoration(color: MyTheme.accent),
+        ).marginOnly(top: 6),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Palavra-passe de uso único',
+                style: GoogleFonts.inter(
+                  fontSize: 13,
+                  color: const Color(0xFF94A3B8),
+                ),
+              ),
+              const SizedBox(height: 6),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF0F172A),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: const Color(0xFF334155), width: 1),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: GestureDetector(
+                        onDoubleTap: () {
+                          Clipboard.setData(
+                              ClipboardData(text: model.serverPasswd.text));
+                          showToast(translate("Copied"));
+                        },
+                        child: Text(
+                          model.serverPasswd.text,
+                          style: GoogleFonts.poppins(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                            letterSpacing: 0.6,
+                          ),
+                        ),
+                      ),
+                    ),
+                    InkWell(
+                      onTap: () => bind.mainUpdateTemporaryPassword(),
+                      child: const Icon(
+                        Icons.refresh,
+                        size: 20,
+                        color: Color(0xFF94A3B8),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    InkWell(
+                      onTap: () {
+                        Clipboard.setData(
+                            ClipboardData(text: model.serverPasswd.text));
+                        showToast(translate("Copied"));
+                      },
+                      child: const Icon(
+                        Icons.copy,
+                        size: 18,
+                        color: Color(0xFF94A3B8),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 

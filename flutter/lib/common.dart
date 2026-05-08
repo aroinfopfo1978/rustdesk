@@ -3752,16 +3752,16 @@ Widget loadPowered(BuildContext context) {
 }
 
 // max 300 x 60
-Widget loadLogo({bool? forceDark}) {
+Widget loadLogo({bool? forceDark, bool compact = false}) {
   final isDark = forceDark ?? Get.isDarkMode;
   final iconAsset = isDark ? 'assets/icon-dark.svg' : 'assets/icon.svg';
   final nexusColor = isDark ? Colors.white : const Color(0xFF2B2B2B);
-  return Container(
+  final child = Container(
     constraints: const BoxConstraints(maxWidth: 300, maxHeight: 60),
-    alignment: Alignment.centerLeft,
+    alignment: compact ? Alignment.center : Alignment.centerLeft,
     child: FittedBox(
       fit: BoxFit.scaleDown,
-      alignment: Alignment.centerLeft,
+      alignment: compact ? Alignment.center : Alignment.centerLeft,
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -3796,7 +3796,11 @@ Widget loadLogo({bool? forceDark}) {
         ],
       ),
     ),
-  ).marginOnly(left: 12, right: 12, top: 12);
+  );
+  if (compact) {
+    return child;
+  }
+  return child.marginOnly(left: 12, right: 12, top: 12);
 }
 
 Widget loadIcon(double size, {bool? forceDark}) {

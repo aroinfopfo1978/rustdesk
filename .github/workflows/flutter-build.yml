@@ -752,6 +752,27 @@ jobs:
             SignOutput/aro-nexus-*.zip
           if-no-files-found: warn
 
+      - name: Upload distribution artifacts (Tech)
+        if: env.UPLOAD_ARTIFACT == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: aro-nexus-tech-dist-windows-x86_64
+          path: |
+            SignOutput/aro-nexus-${{ env.VERSION }}-x86_64.msi
+            SignOutput/aro-nexus-${{ env.VERSION }}-x86_64.exe
+            SignOutput/aro-nexus-${{ env.VERSION }}-x86_64.zip
+          if-no-files-found: warn
+
+      - name: Upload distribution artifacts (Host)
+        if: env.UPLOAD_ARTIFACT == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: aro-nexus-host-dist-windows-x86_64
+          path: |
+            SignOutput/aro-nexus-host-${{ env.VERSION }}-x86_64.exe
+            SignOutput/aro-nexus-host-${{ env.VERSION }}-x86_64.zip
+          if-no-files-found: warn
+
       - name: Publish Release
         uses: softprops/action-gh-release@v1
         if: env.UPLOAD_ARTIFACT == 'true'
