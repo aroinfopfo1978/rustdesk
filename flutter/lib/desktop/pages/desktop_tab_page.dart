@@ -91,6 +91,19 @@ class _DesktopTabPageState extends State<DesktopTabPage> {
 
   @override
   Widget build(BuildContext context) {
+    const aroClientType =
+        String.fromEnvironment('ARO_CLIENT_TYPE', defaultValue: '');
+    final isHost = bind.isCustomClient() &&
+        (bind.isIncomingOnly() || bind.isDisableSettings()) &&
+        aroClientType == 'host';
+    if (isHost) {
+      return Scaffold(
+        backgroundColor: Theme.of(context).colorScheme.surface,
+        body: DesktopHomePage(
+          key: const ValueKey(kTabLabelHomePage),
+        ),
+      );
+    }
     final tabWidget = Container(
         child: Scaffold(
             backgroundColor: Theme.of(context).colorScheme.surface,

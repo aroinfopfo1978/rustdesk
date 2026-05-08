@@ -438,7 +438,14 @@ def build_flutter_windows(version, features, skip_portable_pack):
             print("cargo build failed, please check rust source code.")
             exit(-1)
     os.chdir('flutter')
-    system2('flutter build windows --release')
+    dart_defines = []
+    aro_profile = os.environ.get("ARO_PROFILE", "").strip().lower()
+    if aro_profile == "host":
+        dart_defines.append("--dart-define=ARO_CLIENT_TYPE=host")
+    if dart_defines:
+        system2(f'flutter build windows --release {" ".join(dart_defines)}')
+    else:
+        system2('flutter build windows --release')
     os.chdir('..')
     shutil.copy2('target/release/deps/dylib_virtual_display.dll',
                  flutter_build_dir_2)
