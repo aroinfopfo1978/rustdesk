@@ -3805,7 +3805,7 @@ Widget loadIcon(double size, {bool? forceDark}) {
   return SvgPicture.asset(iconAsset, width: size, height: size);
 }
 
-var imcomingOnlyHomeSize = Size(280, 300);
+var imcomingOnlyHomeSize = Size(360, 620);
 Size getIncomingOnlyHomeSize() {
   final magicWidth = isWindows ? 11.0 : 2.0;
   final magicHeight = 10.0;

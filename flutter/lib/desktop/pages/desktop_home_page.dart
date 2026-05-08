@@ -61,15 +61,18 @@ class _DesktopHomePageState extends State<DesktopHomePage>
   Widget build(BuildContext context) {
     super.build(context);
     final isIncomingOnly = bind.isIncomingOnly();
+    final isHost = isIncomingOnly && bind.isCustomClient();
     return _buildBlock(
-        child: Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        buildLeftPane(context),
-        if (!isIncomingOnly) const VerticalDivider(width: 1),
-        if (!isIncomingOnly) Expanded(child: buildRightPane(context)),
-      ],
-    ));
+        child: isHost
+            ? buildHostPane(context)
+            : Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  buildLeftPane(context),
+                  if (!isIncomingOnly) const VerticalDivider(width: 1),
+                  if (!isIncomingOnly) Expanded(child: buildRightPane(context)),
+                ],
+              ));
   }
 
   Widget _buildBlock({required Widget child}) {
@@ -232,6 +235,135 @@ class _DesktopHomePageState extends State<DesktopHomePage>
           );
         }),
       ),
+    );
+  }
+
+  Widget buildHostPane(BuildContext context) {
+    final hostTheme = Theme.of(context).copyWith(
+      brightness: Brightness.dark,
+      scaffoldBackgroundColor: const Color(0xFF1E293B),
+      colorScheme:
+          Theme.of(context).colorScheme.copyWith(surface: const Color(0xFF1E293B)),
+      iconTheme: const IconThemeData(color: Color(0xFF94A3B8)),
+      inputDecorationTheme: InputDecorationTheme(
+        isDense: true,
+        filled: true,
+        fillColor: const Color(0xFF0F172A),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: Color(0xFF334155), width: 1),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: MyTheme.accent, width: 1),
+        ),
+      ),
+      textTheme: GoogleFonts.interTextTheme(ThemeData.dark().textTheme).copyWith(
+        titleLarge: GoogleFonts.poppins(
+          fontSize: 22,
+          fontWeight: FontWeight.w700,
+          color: Colors.white,
+        ),
+        titleSmall: GoogleFonts.inter(
+          fontSize: 14,
+          fontWeight: FontWeight.w500,
+          color: Colors.white,
+        ),
+        bodySmall: GoogleFonts.inter(
+          fontSize: 12,
+          color: const Color(0xFF94A3B8),
+          height: 1.25,
+        ),
+        bodyMedium: GoogleFonts.inter(
+          fontSize: 14,
+          color: const Color(0xFF94A3B8),
+          height: 1.25,
+        ),
+        labelLarge: GoogleFonts.poppins(
+          fontSize: 16,
+          fontWeight: FontWeight.w600,
+          color: Colors.white,
+        ),
+      ),
+    );
+    return Theme(
+      data: hostTheme,
+      child: Builder(builder: (context) {
+        return SizedBox(
+          width: 360,
+          child: Container(
+            color: const Color(0xFF1E293B),
+            child: Column(
+              children: [
+                const SizedBox(height: 18),
+                Opacity(
+                  opacity: 0.4,
+                  child: Text(
+                    'POWERED BY RUSTDESK',
+                    style: GoogleFonts.inter(
+                      fontSize: 10,
+                      letterSpacing: 1.2,
+                      color: const Color(0xFF94A3B8),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                Center(
+                  child: loadLogo(forceDark: true),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  translate('Slogan_tip'),
+                  style: GoogleFonts.poppins(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: MyTheme.accent,
+                  ),
+                ),
+                const SizedBox(height: 18),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'O Seu Computador',
+                        style: Theme.of(context).textTheme.titleLarge,
+                      ),
+                      const SizedBox(height: 10),
+                      Text(
+                        translate('desk_tip'),
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                      const SizedBox(height: 16),
+                      buildIDBoard(context),
+                      const SizedBox(height: 10),
+                      buildPasswordBoard(context),
+                      const SizedBox(height: 8),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: OutlinedButton(
+                          onPressed: () {
+                            SystemNavigator.pop();
+                            if (isWindows) {
+                              exit(0);
+                            }
+                          },
+                          child: Text(translate('Quit')),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const Spacer(),
+                OnlineStatusWidget().marginOnly(bottom: 8, right: 6),
+              ],
+            ),
+          ),
+        );
+      }),
     );
   }
 

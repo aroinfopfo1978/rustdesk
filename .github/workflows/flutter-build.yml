@@ -67,6 +67,7 @@ jobs:
     runs-on: windows-2022
     env:
       DIST_DIR: aro-nexus
+      HOST_DIST_DIR: aro-nexus-host
     steps:
       - name: Export GitHub Actions cache environment variables
         uses: actions/github-script@v6
@@ -549,6 +550,189 @@ jobs:
         with:
           name: aro-nexus-msi-build-log-windows-x86_64
           path: msi-build.log
+          if-no-files-found: ignore
+
+      - name: Build rustdesk (Host)
+        if: env.UPLOAD_ARTIFACT == 'true'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $log = Join-Path $env:GITHUB_WORKSPACE 'build-windows-host.log'
+          New-Item -ItemType File -Path $log -Force | Out-Null
+
+          function Invoke-Logged([scriptblock]$Script, [string]$Name) {
+            Write-Host ">>> $Name"
+            & $Script 2>&1 | Tee-Object -FilePath $log -Append
+            if ($LASTEXITCODE -ne 0) {
+              throw "$Name failed with exit code $LASTEXITCODE"
+            }
+          }
+
+          $env:ARO_PROFILE = 'host'
+          Push-Location flutter
+          if (Test-Path .dart_tool) { Remove-Item -Recurse -Force .dart_tool }
+          Invoke-Logged { flutter clean } 'flutter clean (host)'
+          Invoke-Logged { flutter pub get } 'flutter pub get (host)'
+          Pop-Location
+
+          Invoke-Logged { python .\build.py --portable --hwcodec --flutter --vram --skip-portable-pack } 'python build.py (flutter/windows) (host)'
+
+          $outDir = Join-Path $env:GITHUB_WORKSPACE $env:HOST_DIST_DIR
+          if (Test-Path $outDir) { Remove-Item -Recurse -Force $outDir }
+          Invoke-Logged { mv ./flutter/build/windows/x64/runner/Release "$outDir" } 'move windows runner output (host)'
+
+      - name: Rename host executable
+        if: env.UPLOAD_ARTIFACT == 'true'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $dist = Join-Path $env:GITHUB_WORKSPACE $env:HOST_DIST_DIR
+          $target = Join-Path $dist 'ARO Nexus Host.exe'
+          $candidates = @('rustdesk.exe', 'RustDesk.exe', 'Runner.exe', 'ARO Nexus.exe')
+          $source = $candidates |
+            ForEach-Object { Join-Path $dist $_ } |
+            Where-Object { Test-Path $_ } |
+            Select-Object -First 1
+          if (-not $source) {
+            Write-Host "Host exe not found in $dist"
+            Get-ChildItem -Force $dist -ErrorAction SilentlyContinue | Select-Object Name,Length | Format-Table -AutoSize
+            exit 1
+          }
+          if (-not (Test-Path $target)) {
+            Write-Host "Rename $source -> $target"
+            Move-Item -Force $source $target
+          } else {
+            Write-Host "Target exe already exists: $target"
+          }
+
+      - name: Download RustDeskTempTopMostWindow artifacts (Host)
+        uses: actions/download-artifact@v4
+        if: env.UPLOAD_ARTIFACT == 'true'
+        with:
+          name: topmostwindow-artifacts
+          path: "./${{ env.HOST_DIST_DIR }}"
+
+      - name: Upload unsigned (Host)
+        if: env.UPLOAD_ARTIFACT == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: aro-nexus-host-unsigned-windows-x86_64
+          path: ${{ env.HOST_DIST_DIR }}
+
+      - name: Sign ARO Nexus Host files
+        if: env.UPLOAD_ARTIFACT == 'true' && env.SIGN_BASE_URL != '-2'
+        shell: bash
+        run: |
+          python -m pip install requests argparse
+          BASE_URL=${{ env.SIGN_BASE_URL }} SECRET_KEY=${{ secrets.SIGN_SECRET_KEY }} python res/job.py sign_files ./${{ env.HOST_DIST_DIR }}/
+
+      - name: Package folder build (zip) (Host)
+        if: env.UPLOAD_ARTIFACT == 'true'
+        shell: pwsh
+        continue-on-error: true
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $log = Join-Path $env:GITHUB_WORKSPACE 'zip-pack-host.log'
+          New-Item -ItemType File -Path $log -Force | Out-Null
+          $distDir = Join-Path $env:GITHUB_WORKSPACE $env:HOST_DIST_DIR
+          if (-not (Test-Path $distDir)) { throw "HOST_DIST_DIR not found: $distDir" }
+          $signOut = Join-Path $env:GITHUB_WORKSPACE 'SignOutput'
+          New-Item -ItemType Directory -Path $signOut -Force | Out-Null
+          $zipPath = Join-Path $signOut ("aro-nexus-host-{0}-x86_64.zip" -f $env:VERSION)
+          if (Test-Path $zipPath) { Remove-Item -Force $zipPath }
+          try {
+            if (Get-Command tar -ErrorAction SilentlyContinue) {
+              "Using tar to create zip: $zipPath" | Tee-Object -FilePath $log -Append | ForEach-Object { Write-Host $_ }
+              & tar -a -c -f $zipPath -C $distDir . 2>&1 | Tee-Object -FilePath $log -Append
+              if ($LASTEXITCODE -ne 0) { throw "tar failed with exit code $LASTEXITCODE" }
+            } else {
+              "Using Compress-Archive to create zip: $zipPath" | Tee-Object -FilePath $log -Append | ForEach-Object { Write-Host $_ }
+              Compress-Archive -Path (Join-Path $distDir '*') -DestinationPath $zipPath -Force
+            }
+            if (-not (Test-Path $zipPath)) { throw "Zip not created: $zipPath" }
+          } catch {
+            "Zip pack failed: $($_.Exception.Message)" | Tee-Object -FilePath $log -Append | ForEach-Object { Write-Host $_ }
+          }
+
+      - name: Build self-extracted executable (Host)
+        shell: pwsh
+        if: env.UPLOAD_ARTIFACT == 'true'
+        continue-on-error: true
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $log = Join-Path $env:GITHUB_WORKSPACE 'portable-pack-host.log'
+          $portableOk = $false
+
+          New-Item -ItemType File -Path $log -Force | Out-Null
+
+          function Invoke-Logged([scriptblock]$Script, [string]$Name) {
+            Write-Host ">>> $Name"
+            & $Script 2>&1 | Tee-Object -FilePath $log -Append
+            if ($LASTEXITCODE -ne 0) {
+              throw "$Name failed with exit code $LASTEXITCODE"
+            }
+          }
+
+          try {
+            Invoke-Logged { python --version } 'python --version'
+            Invoke-Logged { python -m pip --version } 'python -m pip --version'
+
+            $distDir = Join-Path $env:GITHUB_WORKSPACE $env:HOST_DIST_DIR
+            if (-not (Test-Path $distDir)) {
+              throw "HOST_DIST_DIR path not found: $distDir"
+            }
+            $exeNew = Join-Path $distDir 'ARO Nexus Host.exe'
+            if (-not (Test-Path $exeNew)) {
+              throw "Host exe not found: $exeNew"
+            }
+            $exeName = Split-Path -Leaf $exeNew
+
+            Push-Location (Join-Path $env:GITHUB_WORKSPACE 'libs/portable')
+            Invoke-Logged { rustup toolchain install $env:MAC_RUST_VERSION } "rustup toolchain install $env:MAC_RUST_VERSION"
+            Invoke-Logged { rustup override set $env:MAC_RUST_VERSION } "rustup override set $env:MAC_RUST_VERSION"
+            Invoke-Logged { python -m pip install -r requirements.txt } 'pip install -r requirements.txt'
+            Invoke-Logged { python ./generate.py -f $distDir -o . -e $exeName } 'python generate.py (host)'
+            Pop-Location
+
+            $signOutput = Join-Path $env:GITHUB_WORKSPACE 'SignOutput'
+            New-Item -ItemType Directory -Path $signOutput -Force | Out-Null
+            $packerCandidates = @()
+            $portableTarget = Join-Path $env:GITHUB_WORKSPACE 'libs/portable/target'
+            if (Test-Path $portableTarget) {
+              $packerCandidates += Get-ChildItem -Recurse -File -Path $portableTarget -Filter 'rustdesk-portable-packer.exe' -ErrorAction SilentlyContinue
+            }
+            $rootTarget = Join-Path $env:GITHUB_WORKSPACE 'target'
+            if (Test-Path $rootTarget) {
+              $packerCandidates += Get-ChildItem -Recurse -File -Path $rootTarget -Filter 'rustdesk-portable-packer.exe' -ErrorAction SilentlyContinue
+            }
+            $packer = $packerCandidates | Select-Object -First 1
+            if (-not $packer) {
+              throw "rustdesk-portable-packer.exe not found (searched libs/portable/target and target)"
+            }
+            $portableOut = Join-Path $signOutput ("aro-nexus-host-{0}-x86_64.exe" -f $env:VERSION)
+            ("Portable packer: {0}" -f $packer.FullName) | Tee-Object -FilePath $log -Append | ForEach-Object { Write-Host $_ }
+            ("Copy portable packer -> {0}" -f $portableOut) | Tee-Object -FilePath $log -Append | ForEach-Object { Write-Host $_ }
+            Copy-Item -Force $packer.FullName $portableOut
+            if (-not (Test-Path $portableOut)) {
+              throw "portable output exe not found after copy: $portableOut"
+            }
+            $portableOk = $true
+          } catch {
+            ("ERROR: {0}" -f $_.Exception.Message) | Tee-Object -FilePath $log -Append | ForEach-Object { Write-Host $_ }
+            throw
+          } finally {
+            try { Pop-Location } catch { }
+          }
+
+      - name: Upload host pack logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: aro-nexus-host-pack-logs-windows-x86_64
+          path: |
+            build-windows-host.log
+            zip-pack-host.log
+            portable-pack-host.log
           if-no-files-found: ignore
 
       - name: Sign ARO Nexus self-extracted file
