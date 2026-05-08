@@ -47,7 +47,7 @@ class _PeerCard extends StatefulWidget {
 class _PeerCardState extends State<_PeerCard>
     with AutomaticKeepAliveClientMixin {
   var _menuPos = RelativeRect.fill;
-  final double _cardRadius = 16;
+  final double _cardRadius = 12;
   final double _tileRadius = 5;
   final double _borderWidth = 2;
 
@@ -280,6 +280,9 @@ class _PeerCardState extends State<_PeerCard>
 
   Widget _buildPeerCard(
       BuildContext context, Peer peer, Rx<BoxDecoration?> deco) {
+    if (bind.isCustomClient()) {
+      return _buildCorporatePeerCard(context, peer, deco);
+    }
     hideUsernameOnCard ??=
         bind.mainGetBuildinOption(key: kHideUsernameOnCard) == 'Y';
     final name = hideUsernameOnCard == true
@@ -377,6 +380,176 @@ class _PeerCardState extends State<_PeerCard>
                     ],
                   ).paddingSymmetric(horizontal: 12.0),
                 )
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    final colors = _frontN(peer.tags, 25)
+        .map((e) => gFFI.abModel.getCurrentAbTagColor(e))
+        .toList();
+    return Tooltip(
+      message: peer.tags.isNotEmpty
+          ? '${translate('Tags')}: ${peer.tags.join(', ')}'
+          : '',
+      child: Stack(children: [
+        child,
+        if (_shouldBuildPasswordIcon(peer))
+          Positioned(
+            top: 4,
+            left: 12,
+            child: Icon(Icons.key, size: 12, color: Colors.white),
+          ),
+        if (colors.isNotEmpty)
+          Positioned(
+            top: 4,
+            right: 12,
+            child: CustomPaint(
+              painter: TagPainter(radius: 4, colors: colors),
+            ),
+          )
+      ]),
+    );
+  }
+
+  Widget _buildCorporatePeerCard(
+      BuildContext context, Peer peer, Rx<BoxDecoration?> deco) {
+    hideUsernameOnCard ??=
+        bind.mainGetBuildinOption(key: kHideUsernameOnCard) == 'Y';
+    final name = hideUsernameOnCard == true
+        ? peer.hostname
+        : '${peer.username}${peer.username.isNotEmpty && peer.hostname.isNotEmpty ? '@' : ''}${peer.hostname}';
+    final useOrange = int.tryParse(peer.id.replaceAll(RegExp(r'\\D'), '')) !=
+            null &&
+        (int.parse(peer.id.replaceAll(RegExp(r'\\D'), '')) % 2 == 1);
+
+    final List<Color> headerColors = useOrange
+        ? const [Color(0xFFF26522), Color(0xFFEA580C)]
+        : const [Color(0xFF1E293B), Color(0xFF334155)];
+
+    final borderRadius =
+        BorderRadius.circular(_cardRadius - _borderWidth);
+
+    final child = Card(
+      color: Colors.transparent,
+      elevation: 0,
+      margin: EdgeInsets.zero,
+      child: Obx(
+        () => Container(
+          foregroundDecoration: deco.value,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(_cardRadius),
+            border: Border.all(color: const Color(0xFFE2E8F0), width: 1),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.06),
+                blurRadius: 12,
+                offset: const Offset(0, 6),
+              )
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: borderRadius,
+            child: Column(
+              children: [
+                Expanded(
+                  flex: 5,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: headerColors,
+                      ),
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(6),
+                          child: getPlatformImage(peer.platform, size: 56),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          child: Tooltip(
+                            message: name,
+                            waitDuration: const Duration(seconds: 1),
+                            child: Text(
+                              name,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ),
+                        if (_showNote(peer))
+                          Padding(
+                            padding: const EdgeInsets.only(
+                                left: 8, right: 8, top: 2),
+                            child: Tooltip(
+                              message: peer.note,
+                              waitDuration: const Duration(seconds: 1),
+                              child: Text(
+                                peer.note,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 10,
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+                Expanded(
+                  flex: 3,
+                  child: Container(
+                    color: Colors.white,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Row(children: [
+                            Container(
+                              width: 8,
+                              height: 8,
+                              decoration: BoxDecoration(
+                                color: peer.online
+                                    ? const Color(0xFF10B981)
+                                    : const Color(0xFFCBD5E1),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                            ).marginOnly(right: 8),
+                            Expanded(
+                              child: Text(
+                                peer.alias.isEmpty ? formatID(peer.id) : peer.alias,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  color: Color(0xFF334155),
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ]).paddingSymmetric(vertical: 8),
+                        ),
+                        checkBoxOrActionMoreLandscape(peer, isTile: false),
+                      ],
+                    ).paddingSymmetric(horizontal: 12.0),
+                  ),
+                ),
               ],
             ),
           ),

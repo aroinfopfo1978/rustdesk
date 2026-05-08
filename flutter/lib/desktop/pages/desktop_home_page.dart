@@ -78,14 +78,27 @@ class _DesktopHomePageState extends State<DesktopHomePage>
   }
 
   Widget buildLeftPane(BuildContext context) {
-    final isIncomingOnly = bind.isIncomingOnly();
-    final isOutgoingOnly = bind.isOutgoingOnly();
     final leftTheme = Theme.of(context).copyWith(
       brightness: Brightness.dark,
       scaffoldBackgroundColor: const Color(0xFF1E293B),
       colorScheme:
           Theme.of(context).colorScheme.copyWith(surface: const Color(0xFF1E293B)),
       iconTheme: const IconThemeData(color: Color(0xFF94A3B8)),
+      inputDecorationTheme: InputDecorationTheme(
+        isDense: true,
+        filled: true,
+        fillColor: const Color(0xFF0F172A),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: Color(0xFF334155), width: 1),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: MyTheme.accent, width: 1),
+        ),
+      ),
       textTheme: GoogleFonts.interTextTheme(ThemeData.dark().textTheme).copyWith(
         titleLarge: GoogleFonts.poppins(
           fontSize: 22,
@@ -114,106 +127,110 @@ class _DesktopHomePageState extends State<DesktopHomePage>
         ),
       ),
     );
-    final children = <Widget>[
-      if (!isOutgoingOnly) buildPresetPasswordWarning(),
-      if (bind.isCustomClient())
-        Align(
-          alignment: Alignment.center,
-          child: loadPowered(context),
-        ),
-      Align(
-        alignment: Alignment.center,
-        child: loadLogo(forceDark: true),
-      ),
-      buildTip(context),
-      if (!isOutgoingOnly) buildIDBoard(context),
-      if (!isOutgoingOnly) buildPasswordBoard(context),
-      FutureBuilder<Widget>(
-        future: Future.value(
-            Obx(() => buildHelpCards(stateGlobal.updateUrl.value))),
-        builder: (_, data) {
-          if (data.hasData) {
-            if (isIncomingOnly) {
-              if (isInHomePage()) {
-                Future.delayed(Duration(milliseconds: 300), () {
-                  _updateWindowSize();
-                });
-              }
-            }
-            return data.data!;
-          } else {
-            return const Offstage();
-          }
-        },
-      ),
-      buildPluginEntry(),
-    ];
-    if (isIncomingOnly) {
-      children.addAll([
-        Divider(),
-        OnlineStatusWidget(
-          onSvcStatusChanged: () {
-            if (isInHomePage()) {
-              Future.delayed(Duration(milliseconds: 300), () {
-                _updateWindowSize();
-              });
-            }
-          },
-        ).marginOnly(bottom: 6, right: 6)
-      ]);
-    }
-    final textColor = Theme.of(context).textTheme.titleLarge?.color;
     return ChangeNotifierProvider.value(
       value: gFFI.serverModel,
       child: Theme(
         data: leftTheme,
-        child: Container(
-          width: isIncomingOnly ? 320.0 : 300.0,
-          color: const Color(0xFF1E293B),
-          child: Stack(
-            children: [
-              Column(
-                children: [
-                  SingleChildScrollView(
-                    controller: _leftPaneScrollController,
-                    child: Column(
-                      key: _childKey,
-                      children: children,
-                    ),
-                  ),
-                  Expanded(child: Container())
-                ],
+        child: Builder(builder: (context) {
+          final isIncomingOnly = bind.isIncomingOnly();
+          final isOutgoingOnly = bind.isOutgoingOnly();
+          final children = <Widget>[
+            if (!isOutgoingOnly) buildPresetPasswordWarning(),
+            if (bind.isCustomClient())
+              Align(
+                alignment: Alignment.center,
+                child: loadPowered(context),
               ),
-              if (isOutgoingOnly)
-                Positioned(
-                  bottom: 6,
-                  left: 12,
-                  child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: InkWell(
-                      child: Obx(
-                        () => Icon(
-                          Icons.settings,
-                          color: _editHover.value
-                              ? textColor
-                              : const Color(0xFF94A3B8).withOpacity(0.5),
-                          size: 22,
-                        ),
+            Align(
+              alignment: Alignment.center,
+              child: loadLogo(forceDark: true),
+            ),
+            buildTip(context),
+            if (!isOutgoingOnly) buildIDBoard(context),
+            if (!isOutgoingOnly) buildPasswordBoard(context),
+            FutureBuilder<Widget>(
+              future: Future.value(
+                  Obx(() => buildHelpCards(stateGlobal.updateUrl.value))),
+              builder: (_, data) {
+                if (data.hasData) {
+                  if (isIncomingOnly) {
+                    if (isInHomePage()) {
+                      Future.delayed(Duration(milliseconds: 300), () {
+                        _updateWindowSize();
+                      });
+                    }
+                  }
+                  return data.data!;
+                } else {
+                  return const Offstage();
+                }
+              },
+            ),
+            buildPluginEntry(),
+          ];
+          if (isIncomingOnly) {
+            children.addAll([
+              Divider(),
+              OnlineStatusWidget(
+                onSvcStatusChanged: () {
+                  if (isInHomePage()) {
+                    Future.delayed(Duration(milliseconds: 300), () {
+                      _updateWindowSize();
+                    });
+                  }
+                },
+              ).marginOnly(bottom: 6, right: 6)
+            ]);
+          }
+          final textColor = Theme.of(context).textTheme.titleLarge?.color;
+          return Container(
+            width: isIncomingOnly ? 320.0 : 300.0,
+            color: const Color(0xFF1E293B),
+            child: Stack(
+              children: [
+                Column(
+                  children: [
+                    SingleChildScrollView(
+                      controller: _leftPaneScrollController,
+                      child: Column(
+                        key: _childKey,
+                        children: children,
                       ),
-                      onTap: () => {
-                        if (DesktopSettingPage.tabKeys.isNotEmpty)
-                          {
-                            DesktopSettingPage.switch2page(
-                                DesktopSettingPage.tabKeys[0])
-                          }
-                      },
-                      onHover: (value) => _editHover.value = value,
                     ),
-                  ),
-                )
-            ],
-          ),
-        ),
+                    Expanded(child: Container())
+                  ],
+                ),
+                if (isOutgoingOnly)
+                  Positioned(
+                    bottom: 6,
+                    left: 12,
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: InkWell(
+                        child: Obx(
+                          () => Icon(
+                            Icons.settings,
+                            color: _editHover.value
+                                ? textColor
+                                : const Color(0xFF94A3B8).withOpacity(0.5),
+                            size: 22,
+                          ),
+                        ),
+                        onTap: () => {
+                          if (DesktopSettingPage.tabKeys.isNotEmpty)
+                            {
+                              DesktopSettingPage.switch2page(
+                                  DesktopSettingPage.tabKeys[0])
+                            }
+                        },
+                        onHover: (value) => _editHover.value = value,
+                      ),
+                    ),
+                  )
+              ],
+            ),
+          );
+        }),
       ),
     );
   }
@@ -273,7 +290,8 @@ class _DesktopHomePageState extends State<DesktopHomePage>
                         readOnly: true,
                         decoration: InputDecoration(
                           border: InputBorder.none,
-                          contentPadding: EdgeInsets.only(top: 10, bottom: 10),
+                          enabledBorder: InputBorder.none,
+                          focusedBorder: InputBorder.none,
                         ),
                         style: TextStyle(
                           fontSize: 24,
@@ -373,8 +391,8 @@ class _DesktopHomePageState extends State<DesktopHomePage>
                             readOnly: true,
                             decoration: InputDecoration(
                               border: InputBorder.none,
-                              contentPadding:
-                                  EdgeInsets.only(top: 14, bottom: 10),
+                              enabledBorder: InputBorder.none,
+                              focusedBorder: InputBorder.none,
                             ),
                             style: const TextStyle(
                               fontSize: 16,
