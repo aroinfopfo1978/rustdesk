@@ -2144,6 +2144,9 @@ fn apply_default_aro_profile() {
         return;
     }
 
+    const HOST: &str = "bdesk.arotecnologia.inf.br";
+    const KEY: &str = "YLVVcTEGLP3xzu1jmrSuFxJZl9Ui0nUINzua+0U8gYA=";
+
     config::HARD_SETTINGS
         .write()
         .unwrap()
@@ -2173,6 +2176,17 @@ fn apply_default_aro_profile() {
         .write()
         .unwrap()
         .insert(keys::OPTION_HIDE_TRAY.to_owned(), "Y".to_owned());
+
+    Config::set_option(keys::OPTION_CUSTOM_RENDEZVOUS_SERVER.to_owned(), HOST.to_owned());
+    Config::set_option(keys::OPTION_RELAY_SERVER.to_owned(), HOST.to_owned());
+    Config::set_option(keys::OPTION_KEY.to_owned(), KEY.to_owned());
+    Config::set_option(keys::OPTION_APPROVE_MODE.to_owned(), "password".to_owned());
+    Config::set_option(
+        keys::OPTION_VERIFICATION_METHOD.to_owned(),
+        "use-temporary-password".to_owned(),
+    );
+    Config::set_option(keys::OPTION_TEMPORARY_PASSWORD_LENGTH.to_owned(), "6".to_owned());
+    Config::set_option("stop-service".to_owned(), "N".to_owned());
 }
 
 fn read_custom_client_advanced_settings(
