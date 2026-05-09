@@ -39,6 +39,7 @@ class DesktopTabPage extends StatefulWidget {
 
 class _DesktopTabPageState extends State<DesktopTabPage> {
   final tabController = DesktopTabController(tabType: DesktopTabType.main);
+  bool _hostSized = false;
 
   _DesktopTabPageState() {
     RemoteCountState.init();
@@ -97,8 +98,15 @@ class _DesktopTabPageState extends State<DesktopTabPage> {
         (bind.isIncomingOnly() || bind.isDisableSettings()) &&
         aroClientType == 'host';
     if (isHost) {
+      if (!_hostSized) {
+        _hostSized = true;
+        WidgetsBinding.instance.addPostFrameCallback((_) async {
+          await windowManager.setSize(getIncomingOnlyHomeSize());
+          setResizable(false);
+        });
+      }
       return Scaffold(
-        backgroundColor: Theme.of(context).colorScheme.surface,
+        backgroundColor: const Color(0xFF0F172A),
         body: DesktopHomePage(
           key: const ValueKey(kTabLabelHomePage),
         ),
