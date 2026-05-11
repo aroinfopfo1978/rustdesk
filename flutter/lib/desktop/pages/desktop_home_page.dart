@@ -43,6 +43,7 @@ class _DesktopHomePageState extends State<DesktopHomePage>
   @override
   bool get wantKeepAlive => true;
   var systemError = '';
+  var serverProbeError = '';
   StreamSubscription? _uniLinksSubscription;
   var svcStopped = false.obs;
   var watchIsCanScreenRecording = false;
@@ -288,189 +289,206 @@ class _DesktopHomePageState extends State<DesktopHomePage>
         ),
       ),
     );
-    return Theme(
-      data: hostTheme,
-      child: Builder(builder: (context) {
-        return Container(
-          width: double.infinity,
-          height: double.infinity,
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [
-                Color(0xFF1E293B),
-                Color(0xFF0F172A),
-              ],
+    return ChangeNotifierProvider.value(
+      value: gFFI.serverModel,
+      child: Theme(
+        data: hostTheme,
+        child: Builder(builder: (context) {
+          return Container(
+            width: double.infinity,
+            height: double.infinity,
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Color(0xFF1E293B),
+                  Color(0xFF0F172A),
+                ],
+              ),
             ),
-          ),
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 420),
-              child: Stack(
-                children: [
-                  Positioned(
-                    top: -120,
-                    right: -120,
-                    child: Container(
-                      width: 240,
-                      height: 240,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: MyTheme.accent.withOpacity(0.10),
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 420),
+                child: Stack(
+                  children: [
+                    Positioned(
+                      top: -120,
+                      right: -120,
+                      child: Container(
+                        width: 240,
+                        height: 240,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: MyTheme.accent.withOpacity(0.10),
+                        ),
                       ),
                     ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(24, 20, 24, 18),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Align(
-                          alignment: Alignment.center,
-                          child: Opacity(
-                            opacity: 0.4,
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(24, 20, 24, 18),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Align(
+                            alignment: Alignment.center,
+                            child: Opacity(
+                              opacity: 0.4,
+                              child: Text(
+                                'POWERED BY RUSTDESK',
+                                style: GoogleFonts.inter(
+                                  fontSize: 10,
+                                  letterSpacing: 1.2,
+                                  color: const Color(0xFF94A3B8),
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 14),
+                          Align(
+                            alignment: Alignment.center,
+                            child: loadLogo(forceDark: true, compact: true),
+                          ),
+                          const SizedBox(height: 10),
+                          Align(
+                            alignment: Alignment.center,
                             child: Text(
-                              'POWERED BY RUSTDESK',
-                              style: GoogleFonts.inter(
-                                fontSize: 10,
-                                letterSpacing: 1.2,
-                                color: const Color(0xFF94A3B8),
+                              translate('Slogan_tip'),
+                              style: GoogleFonts.poppins(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: MyTheme.accent,
                               ),
                             ),
                           ),
-                        ),
-                        const SizedBox(height: 14),
-                        Align(
-                          alignment: Alignment.center,
-                          child: loadLogo(forceDark: true, compact: true),
-                        ),
-                        const SizedBox(height: 10),
-                        Align(
-                          alignment: Alignment.center,
-                          child: Text(
-                            translate('Slogan_tip'),
+                          const SizedBox(height: 28),
+                          Text(
+                            'O Seu Ecrã',
                             style: GoogleFonts.poppins(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: MyTheme.accent,
+                              fontSize: 24,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
                             ),
                           ),
-                        ),
-                        const SizedBox(height: 28),
-                        Text(
-                          'O Seu Ecrã',
-                          style: GoogleFonts.poppins(
-                            fontSize: 24,
-                            fontWeight: FontWeight.w700,
-                            color: Colors.white,
+                          const SizedBox(height: 10),
+                          Text(
+                            'Este computador pode ser acessado usando este ID e senha temporária.',
+                            style: Theme.of(context).textTheme.bodySmall,
                           ),
-                        ),
-                        const SizedBox(height: 10),
-                        Text(
-                          'Este computador pode ser acessado usando este ID e senha temporária.',
-                          style: Theme.of(context).textTheme.bodySmall,
-                        ),
-                        const SizedBox(height: 22),
-                        _buildHostIdBoard(context),
-                        const SizedBox(height: 16),
-                        _buildHostPasswordBoard(context),
-                        const SizedBox(height: 18),
-                        Align(
-                          alignment: Alignment.centerRight,
-                          child: ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF334155),
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 26, vertical: 14),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
+                          const SizedBox(height: 22),
+                          _buildHostIdBoard(context),
+                          const SizedBox(height: 16),
+                          _buildHostPasswordBoard(context),
+                          const SizedBox(height: 18),
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF334155),
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 26, vertical: 14),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
                               ),
+                              onPressed: () {
+                                SystemNavigator.pop();
+                                if (isWindows) {
+                                  exit(0);
+                                }
+                              },
+                              child: Text('Sair',
+                                  style: GoogleFonts.poppins(
+                                      fontWeight: FontWeight.w600)),
                             ),
-                            onPressed: () {
-                              SystemNavigator.pop();
-                              if (isWindows) {
-                                exit(0);
-                              }
-                            },
-                            child: Text('Sair',
-                                style: GoogleFonts.poppins(
-                                    fontWeight: FontWeight.w600)),
                           ),
-                        ),
-                        const Spacer(),
-                        Obx(() {
-                          final s = stateGlobal.svcStatus.value;
-                          final ready = s == SvcStatus.ready;
-                          final notReady = s == SvcStatus.notReady;
-                          final dot = ready
-                              ? const Color(0xFF10B981)
-                              : notReady
-                                  ? const Color(0xFFEF4444)
-                                  : const Color(0xFFF59E0B);
-                          final text = ready
-                              ? translate('Ready')
-                              : notReady
-                                  ? translate('not_ready_status')
-                                  : translate('connecting_status');
-                          final err = systemError.trim();
-                          return Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  Container(
-                                    width: 8,
-                                    height: 8,
-                                    decoration: BoxDecoration(
-                                      color: dot,
-                                      borderRadius: BorderRadius.circular(4),
+                          const Spacer(),
+                          Obx(() {
+                            final s = stateGlobal.svcStatus.value;
+                            final ready = s == SvcStatus.ready;
+                            final notReady = s == SvcStatus.notReady;
+                            final dot = ready
+                                ? const Color(0xFF10B981)
+                                : notReady
+                                    ? const Color(0xFFEF4444)
+                                    : const Color(0xFFF59E0B);
+                            final text = ready
+                                ? translate('Ready')
+                                : notReady
+                                    ? translate('not_ready_status')
+                                    : translate('connecting_status');
+                            final err = systemError.trim();
+                            final probe = serverProbeError.trim();
+                            return Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Container(
+                                      width: 8,
+                                      height: 8,
+                                      decoration: BoxDecoration(
+                                        color: dot,
+                                        borderRadius: BorderRadius.circular(4),
+                                      ),
                                     ),
-                                  ),
-                                  const SizedBox(width: 10),
-                                  Expanded(
+                                    const SizedBox(width: 10),
+                                    Expanded(
+                                      child: Text(
+                                        text,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: GoogleFonts.inter(
+                                          fontSize: 12,
+                                          color: const Color(0xFF94A3B8),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                if (probe.isNotEmpty)
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 4),
                                     child: Text(
-                                      text,
+                                      probe,
+                                      maxLines: 2,
                                       overflow: TextOverflow.ellipsis,
                                       style: GoogleFonts.inter(
-                                        fontSize: 12,
+                                        fontSize: 11,
                                         color: const Color(0xFF94A3B8),
                                       ),
                                     ),
                                   ),
-                                ],
-                              ),
-                              if (err.isNotEmpty)
-                                Padding(
-                                  padding: const EdgeInsets.only(top: 4),
-                                  child: Text(
-                                    err,
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: GoogleFonts.inter(
-                                      fontSize: 11,
-                                      color: const Color(0xFF94A3B8),
+                                if (err.isNotEmpty)
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 4),
+                                    child: Text(
+                                      err,
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: GoogleFonts.inter(
+                                        fontSize: 11,
+                                        color: const Color(0xFF94A3B8),
+                                      ),
                                     ),
                                   ),
-                                ),
-                            ],
-                          );
-                        }),
-                      ],
+                              ],
+                            );
+                          }),
+                        ],
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
-          ),
-        );
-      }),
+          );
+        }),
+      ),
     );
   }
 
   Widget _buildHostIdBoard(BuildContext context) {
-    final model = gFFI.serverModel;
+    final model = context.watch<ServerModel>();
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -542,7 +560,7 @@ class _DesktopHomePageState extends State<DesktopHomePage>
   }
 
   Widget _buildHostPasswordBoard(BuildContext context) {
-    final model = gFFI.serverModel;
+    final model = context.watch<ServerModel>();
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1181,7 +1199,26 @@ class _DesktopHomePageState extends State<DesktopHomePage>
           await bind.mainSetOption(key: 'temporary-password-length', value: '6');
           await start_service(true);
           await gFFI.serverModel.startService();
-        } catch (_) {}
+          final idErr = await bind.mainTestIfValidServer(
+              server: hbbs, testWithProxy: false);
+          final relayErr = await bind.mainTestIfValidServer(
+              server: hbbr, testWithProxy: false);
+          final probeMsgs = <String>[];
+          if (idErr.trim().isNotEmpty) {
+            probeMsgs.add('ID: ${translate(idErr)}');
+          }
+          if (relayErr.trim().isNotEmpty) {
+            probeMsgs.add('Relay: ${translate(relayErr)}');
+          }
+          final probeText = probeMsgs.join(' • ');
+          if (serverProbeError != probeText) {
+            serverProbeError = probeText;
+            setState(() {});
+          }
+        } catch (e) {
+          serverProbeError = e.toString();
+          setState(() {});
+        }
       });
     }
     _updateTimer = periodic_immediate(const Duration(seconds: 1), () async {
