@@ -129,6 +129,15 @@ jobs:
           cd $(dirname $(dirname $(which flutter)))
           [[ "3.24.5" == ${{env.FLUTTER_VERSION}} ]] && git apply flutter_3.24.4_dropdown_menu_enableFilter.diff || true
 
+      - name: Use isolated PUB_CACHE (avoid pub advisories crash)
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Continue'
+          $pub = Join-Path $env:RUNNER_TEMP 'pub-cache'
+          Remove-Item -Recurse -Force $pub -ErrorAction SilentlyContinue
+          New-Item -ItemType Directory -Force -Path $pub | Out-Null
+          "PUB_CACHE=$pub" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@v1
         with:
