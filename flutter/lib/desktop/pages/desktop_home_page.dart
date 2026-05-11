@@ -403,33 +403,57 @@ class _DesktopHomePageState extends State<DesktopHomePage>
                         Obx(() {
                           final s = stateGlobal.svcStatus.value;
                           final ready = s == SvcStatus.ready;
+                          final notReady = s == SvcStatus.notReady;
                           final dot = ready
                               ? const Color(0xFF10B981)
-                              : const Color(0xFFF59E0B);
+                              : notReady
+                                  ? const Color(0xFFEF4444)
+                                  : const Color(0xFFF59E0B);
                           final text = ready
                               ? translate('Ready')
-                              : translate('connecting_status');
-                          return Row(
+                              : notReady
+                                  ? translate('not_ready_status')
+                                  : translate('connecting_status');
+                          final err = systemError.trim();
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Container(
-                                width: 8,
-                                height: 8,
-                                decoration: BoxDecoration(
-                                  color: dot,
-                                  borderRadius: BorderRadius.circular(4),
-                                ),
+                              Row(
+                                children: [
+                                  Container(
+                                    width: 8,
+                                    height: 8,
+                                    decoration: BoxDecoration(
+                                      color: dot,
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Text(
+                                      text,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: GoogleFonts.inter(
+                                        fontSize: 12,
+                                        color: const Color(0xFF94A3B8),
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: Text(
-                                  text,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: GoogleFonts.inter(
-                                    fontSize: 12,
-                                    color: const Color(0xFF94A3B8),
+                              if (err.isNotEmpty)
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 4),
+                                  child: Text(
+                                    err,
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: GoogleFonts.inter(
+                                      fontSize: 11,
+                                      color: const Color(0xFF94A3B8),
+                                    ),
                                   ),
                                 ),
-                              ),
                             ],
                           );
                         }),
@@ -1139,6 +1163,27 @@ class _DesktopHomePageState extends State<DesktopHomePage>
   @override
   void initState() {
     super.initState();
+    const aroClientType =
+        String.fromEnvironment('ARO_CLIENT_TYPE', defaultValue: '');
+    final isHostApp = bind.isCustomClient() && aroClientType == 'host';
+    if (isHostApp) {
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        try {
+          const host = 'bdesk.arotecnologia.inf.br';
+          final hbbs = host.contains(':') ? host : '$host:21116';
+          final hbbr = host.contains(':') ? host : '$host:21117';
+          await bind.mainSetOption(key: 'custom-rendezvous-server', value: hbbs);
+          await bind.mainSetOption(key: 'relay-server', value: hbbr);
+          await bind.mainSetOption(key: 'key', value: 'YLVVcTEGLP3xzu1jmrSuFxJZl9Ui0nUINzua+0U8gYA=');
+          await bind.mainSetOption(key: kOptionApproveMode, value: 'password');
+          await bind.mainSetOption(
+              key: kOptionVerificationMethod, value: 'use-temporary-password');
+          await bind.mainSetOption(key: 'temporary-password-length', value: '6');
+          await start_service(true);
+          await gFFI.serverModel.startService();
+        } catch (_) {}
+      });
+    }
     _updateTimer = periodic_immediate(const Duration(seconds: 1), () async {
       await gFFI.serverModel.fetchID();
       final error = await bind.mainGetError();
