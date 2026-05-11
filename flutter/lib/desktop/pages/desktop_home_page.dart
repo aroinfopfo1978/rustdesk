@@ -1223,6 +1223,21 @@ class _DesktopHomePageState extends State<DesktopHomePage>
     }
     _updateTimer = periodic_immediate(const Duration(seconds: 1), () async {
       await gFFI.serverModel.fetchID();
+      if (isHostApp) {
+        try {
+          final status = jsonDecode(await bind.mainGetConnectStatus())
+              as Map<String, dynamic>;
+          final statusNum = status['status_num'] as int;
+          final next = statusNum == 0
+              ? SvcStatus.connecting
+              : statusNum == 1
+                  ? SvcStatus.ready
+                  : SvcStatus.notReady;
+          if (stateGlobal.svcStatus.value != next) {
+            stateGlobal.svcStatus.value = next;
+          }
+        } catch (_) {}
+      }
       final error = await bind.mainGetError();
       if (systemError != error) {
         systemError = error;
