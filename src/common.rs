@@ -2086,6 +2086,7 @@ pub fn load_custom_client() {
     if let Ok(data) = std::fs::read_to_string("./custom.txt") {
         read_custom_client(data.trim());
         apply_default_aro_nexus_branding();
+        apply_default_aro_server_config();
         apply_default_aro_profile();
         return;
     }
@@ -2104,6 +2105,7 @@ pub fn load_custom_client() {
         read_custom_client(&data.trim());
     }
     apply_default_aro_nexus_branding();
+    apply_default_aro_server_config();
     apply_default_aro_profile();
 }
 
@@ -2111,6 +2113,24 @@ fn apply_default_aro_nexus_branding() {
     const APP_NAME: &str = "ARO Nexus";
     if config::APP_NAME.read().unwrap().as_str() == "RustDesk" {
         *config::APP_NAME.write().unwrap() = APP_NAME.to_owned();
+    }
+}
+
+fn apply_default_aro_server_config() {
+    const HOST: &str = "bdesk.arotecnologia.inf.br";
+    const KEY: &str = "YLVVcTEGLP3xzu1jmrSuFxJZl9Ui0nUINzua+0U8gYA=";
+
+    if Config::get_option(keys::OPTION_CUSTOM_RENDEZVOUS_SERVER).is_empty() {
+        Config::set_option(
+            keys::OPTION_CUSTOM_RENDEZVOUS_SERVER.to_owned(),
+            format!("{HOST}:{RENDEZVOUS_PORT}"),
+        );
+    }
+    if Config::get_option(keys::OPTION_RELAY_SERVER).is_empty() {
+        Config::set_option(keys::OPTION_RELAY_SERVER.to_owned(), format!("{HOST}:21117"));
+    }
+    if Config::get_option(keys::OPTION_KEY).is_empty() {
+        Config::set_option(keys::OPTION_KEY.to_owned(), KEY.to_owned());
     }
 }
 
