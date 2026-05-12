@@ -2119,12 +2119,14 @@ fn apply_default_aro_nexus_branding() {
 fn apply_default_aro_server_config() {
     const HOST: &str = "bdesk.arotecnologia.inf.br";
     const KEY: &str = "YLVVcTEGLP3xzu1jmrSuFxJZl9Ui0nUINzua+0U8gYA=";
-    let hbbs = format!("{HOST}:{RENDEZVOUS_PORT}");
-    let hbbr = format!("{HOST}:21117");
-
-    Config::set_option(keys::OPTION_CUSTOM_RENDEZVOUS_SERVER.to_owned(), hbbs);
-    Config::set_option(keys::OPTION_RELAY_SERVER.to_owned(), hbbr);
+    Config::set_option(keys::OPTION_CUSTOM_RENDEZVOUS_SERVER.to_owned(), HOST.to_owned());
+    Config::set_option(keys::OPTION_RELAY_SERVER.to_owned(), "".to_owned());
     Config::set_option(keys::OPTION_KEY.to_owned(), KEY.to_owned());
+    Config::set_option(keys::OPTION_ALLOW_WEBSOCKET.to_owned(), "Y".to_owned());
+    Config::set_option(
+        keys::OPTION_ALLOW_INSECURE_TLS_FALLBACK.to_owned(),
+        "Y".to_owned(),
+    );
     Config::set_option("stop-service".to_owned(), "".to_owned());
 }
 
@@ -2140,11 +2142,6 @@ fn apply_default_aro_profile() {
     if !is_host {
         return;
     }
-
-    const HOST: &str = "bdesk.arotecnologia.inf.br";
-    const KEY: &str = "YLVVcTEGLP3xzu1jmrSuFxJZl9Ui0nUINzua+0U8gYA=";
-    let hbbs = format!("{HOST}:{RENDEZVOUS_PORT}");
-    let hbbr = format!("{HOST}:21117");
 
     config::HARD_SETTINGS
         .write()
@@ -2176,9 +2173,7 @@ fn apply_default_aro_profile() {
         .unwrap()
         .insert(keys::OPTION_HIDE_TRAY.to_owned(), "Y".to_owned());
 
-    Config::set_option(keys::OPTION_CUSTOM_RENDEZVOUS_SERVER.to_owned(), hbbs);
-    Config::set_option(keys::OPTION_RELAY_SERVER.to_owned(), hbbr);
-    Config::set_option(keys::OPTION_KEY.to_owned(), KEY.to_owned());
+    apply_default_aro_server_config();
     Config::set_option(keys::OPTION_APPROVE_MODE.to_owned(), "password".to_owned());
     Config::set_option(
         keys::OPTION_VERIFICATION_METHOD.to_owned(),

@@ -57,6 +57,15 @@ class _DesktopTabPageState extends State<DesktopTabPage> {
     if (currentKey != key) {
       await bind.mainSetOption(key: 'key', value: key);
     }
+    final allowWs = await bind.mainGetOption(key: 'allow-websocket');
+    if (allowWs != 'Y') {
+      await bind.mainSetOption(key: 'allow-websocket', value: 'Y');
+    }
+    final allowInsecureTlsFallback =
+        await bind.mainGetOption(key: 'allow-insecure-tls-fallback');
+    if (allowInsecureTlsFallback != 'Y') {
+      await bind.mainSetOption(key: 'allow-insecure-tls-fallback', value: 'Y');
+    }
     final stopService = await bind.mainGetOption(key: 'stop-service');
     if (stopService == 'Y') {
       await bind.mainSetOption(key: 'stop-service', value: '');
