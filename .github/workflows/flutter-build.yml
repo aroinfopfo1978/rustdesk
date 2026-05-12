@@ -22,7 +22,7 @@ on:
         default: "nightly"
 
 concurrency:
-  group: flutter-build-${{ github.ref }}
+  group: flutter-build-${{ github.ref }}-${{ github.event_name }}
   cancel-in-progress: true
 
 env:
