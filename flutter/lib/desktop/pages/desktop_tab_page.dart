@@ -41,6 +41,28 @@ class _DesktopTabPageState extends State<DesktopTabPage> {
   final tabController = DesktopTabController(tabType: DesktopTabType.main);
   bool _hostSized = false;
 
+  Future<void> _ensureAroDaemonOptions() async {
+    const host = 'bdesk.arotecnologia.inf.br';
+    const key = 'YLVVcTEGLP3xzu1jmrSuFxJZl9Ui0nUINzua+0U8gYA=';
+
+    final currentRz = await bind.mainGetOption(key: 'custom-rendezvous-server');
+    if (currentRz != host) {
+      await bind.mainSetOption(key: 'custom-rendezvous-server', value: host);
+    }
+    final currentRelay = await bind.mainGetOption(key: 'relay-server');
+    if (currentRelay.isNotEmpty) {
+      await bind.mainSetOption(key: 'relay-server', value: '');
+    }
+    final currentKey = await bind.mainGetOption(key: 'key');
+    if (currentKey != key) {
+      await bind.mainSetOption(key: 'key', value: key);
+    }
+    final stopService = await bind.mainGetOption(key: 'stop-service');
+    if (stopService == 'Y') {
+      await bind.mainSetOption(key: 'stop-service', value: '');
+    }
+  }
+
   _DesktopTabPageState() {
     RemoteCountState.init();
     Get.put<DesktopTabController>(tabController);
@@ -69,6 +91,13 @@ class _DesktopTabPageState extends State<DesktopTabPage> {
   @override
   void initState() {
     super.initState();
+    if (bind.isCustomClient()) {
+      () async {
+        try {
+          await _ensureAroDaemonOptions();
+        } catch (_) {}
+      }();
+    }
     // HardwareKeyboard.instance.addHandler(_handleKeyEvent);
   }
 
