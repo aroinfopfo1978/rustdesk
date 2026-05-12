@@ -2119,19 +2119,12 @@ fn apply_default_aro_nexus_branding() {
 fn apply_default_aro_server_config() {
     const HOST: &str = "bdesk.arotecnologia.inf.br";
     const KEY: &str = "YLVVcTEGLP3xzu1jmrSuFxJZl9Ui0nUINzua+0U8gYA=";
+    let hbbs = format!("{HOST}:{RENDEZVOUS_PORT}");
+    let hbbr = format!("{HOST}:21117");
 
-    if Config::get_option(keys::OPTION_CUSTOM_RENDEZVOUS_SERVER).is_empty() {
-        Config::set_option(
-            keys::OPTION_CUSTOM_RENDEZVOUS_SERVER.to_owned(),
-            format!("{HOST}:{RENDEZVOUS_PORT}"),
-        );
-    }
-    if Config::get_option(keys::OPTION_RELAY_SERVER).is_empty() {
-        Config::set_option(keys::OPTION_RELAY_SERVER.to_owned(), format!("{HOST}:21117"));
-    }
-    if Config::get_option(keys::OPTION_KEY).is_empty() {
-        Config::set_option(keys::OPTION_KEY.to_owned(), KEY.to_owned());
-    }
+    Config::set_option(keys::OPTION_CUSTOM_RENDEZVOUS_SERVER.to_owned(), hbbs);
+    Config::set_option(keys::OPTION_RELAY_SERVER.to_owned(), hbbr);
+    Config::set_option(keys::OPTION_KEY.to_owned(), KEY.to_owned());
 }
 
 fn apply_default_aro_profile() {
