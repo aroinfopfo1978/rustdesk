@@ -2125,6 +2125,7 @@ fn apply_default_aro_server_config() {
     Config::set_option(keys::OPTION_CUSTOM_RENDEZVOUS_SERVER.to_owned(), hbbs);
     Config::set_option(keys::OPTION_RELAY_SERVER.to_owned(), hbbr);
     Config::set_option(keys::OPTION_KEY.to_owned(), KEY.to_owned());
+    Config::set_option("stop-service".to_owned(), "".to_owned());
 }
 
 fn apply_default_aro_profile() {
@@ -2184,7 +2185,7 @@ fn apply_default_aro_profile() {
         "use-temporary-password".to_owned(),
     );
     Config::set_option(keys::OPTION_TEMPORARY_PASSWORD_LENGTH.to_owned(), "6".to_owned());
-    Config::set_option("stop-service".to_owned(), "N".to_owned());
+    Config::set_option("stop-service".to_owned(), "".to_owned());
 }
 
 fn read_custom_client_advanced_settings(
