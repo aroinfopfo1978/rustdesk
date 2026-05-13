@@ -285,48 +285,47 @@ impl RendezvousMediator {
             Some(rendezvous_message::Union::RegisterPkResponse(rpr)) => {
                 update_latency();
                 let result_code = rpr.result.value();
-                match rpr.result.enum_value() {
-                    Ok(register_pk_response::Result::OK) => {
+                match result_code {
+                    // Compatibility: some servers use OK=1 (older/custom builds).
+                    0 | 1 => {
                         Config::set_key_confirmed(true);
                         Config::set_host_key_confirmed(&self.host_prefix, true);
                         *SOLVING_PK_MISMATCH.lock().await = "".to_owned();
                     }
-                    Ok(register_pk_response::Result::UUID_MISMATCH) => {
+                    2 => {
                         self.handle_uuid_mismatch(sink).await?;
                     }
-                    Ok(register_pk_response::Result::ID_EXISTS)
-                    | Ok(register_pk_response::Result::INVALID_ID_FORMAT) => {
+                    3 | 5 => {
                         log::warn!(
-                            "RegisterPkResponse {:?} from {}, generating new id",
-                            rpr.result.enum_value().ok(),
+                            "RegisterPkResponse code={} from {}, generating new id",
+                            result_code,
                             self.host
                         );
                         Config::set_key_confirmed(false);
                         Config::update_id();
                         self.register_pk(sink).await?;
                     }
-                    Ok(register_pk_response::Result::TOO_FREQUENT) => {
+                    4 => {
                         log::warn!(
                             "RegisterPkResponse TOO_FREQUENT from {}, will retry later",
                             self.host
                         );
                     }
-                    Ok(register_pk_response::Result::NOT_SUPPORT)
-                    | Ok(register_pk_response::Result::SERVER_ERROR) => {
+                    6 | 7 => {
                         log::error!(
-                            "RegisterPkResponse {:?} from {}",
-                            rpr.result.enum_value().ok(),
+                            "RegisterPkResponse code={} from {}",
+                            result_code,
                             self.host
                         );
                     }
-                    Err(_) => {
+                    _ => {
                         log::error!(
                             "Unknown RegisterPkResponse from {}, code={}",
                             self.host,
                             result_code
                         );
                     }
-                };
+                }
                 if rpr.keep_alive > 0 {
                     self.keep_alive = rpr.keep_alive * 1000;
                     log::info!("keep_alive: {}ms", self.keep_alive);
