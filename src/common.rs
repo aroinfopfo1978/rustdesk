@@ -2121,6 +2121,7 @@ fn apply_default_aro_server_config() {
     const KEY: &str = "YLVVcTEGLP3xzu1jmrSuFxJZl9Ui0nUINzua+0U8gYA=";
     Config::set_option(keys::OPTION_CUSTOM_RENDEZVOUS_SERVER.to_owned(), HOST.to_owned());
     Config::set_option(keys::OPTION_RELAY_SERVER.to_owned(), "".to_owned());
+    Config::set_option("api-server".to_owned(), format!("https://{HOST}"));
     Config::set_option(keys::OPTION_KEY.to_owned(), KEY.to_owned());
     Config::set_option(keys::OPTION_ALLOW_WEBSOCKET.to_owned(), "Y".to_owned());
     Config::set_option(

@@ -44,6 +44,7 @@ class _DesktopTabPageState extends State<DesktopTabPage> {
   Future<void> _ensureAroDaemonOptions() async {
     const host = 'bdesk.arotecnologia.inf.br';
     const key = 'YLVVcTEGLP3xzu1jmrSuFxJZl9Ui0nUINzua+0U8gYA=';
+    const apiServer = 'https://bdesk.arotecnologia.inf.br';
 
     final currentRz = await bind.mainGetOption(key: 'custom-rendezvous-server');
     if (currentRz != host) {
@@ -52,6 +53,10 @@ class _DesktopTabPageState extends State<DesktopTabPage> {
     final currentRelay = await bind.mainGetOption(key: 'relay-server');
     if (currentRelay.isNotEmpty) {
       await bind.mainSetOption(key: 'relay-server', value: '');
+    }
+    final currentApi = await bind.mainGetOption(key: 'api-server');
+    if (currentApi != apiServer) {
+      await bind.mainSetOption(key: 'api-server', value: apiServer);
     }
     final currentKey = await bind.mainGetOption(key: 'key');
     if (currentKey != key) {
